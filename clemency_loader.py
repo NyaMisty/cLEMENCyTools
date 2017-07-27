@@ -39,5 +39,6 @@ def load_file(li, neflags, format):
     file2base.argtypes = (ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int)
     file2base.restype = ctypes.c_int
     file2base(retlinput,0,0,int(fileLen * 8 / 9),FILEREG_PATCHABLE)
+    add_segm(0, 0, "_start", 1)
     #close_linput(retlinput)
     return 1
