@@ -1,9 +1,27 @@
 from idaapi import *
+from idc import *
+
+FL_B = 0x000000001  # 8 bits
+FL_W = 0x000000002  # 16 bits
+FL_D = 0x000000004  # 32 bits
+FL_Q = 0x000000008  # 64 bits
+FL_OP1 = 0x000000010  # check operand 1
+FL_32 = 0x000000020  # Is 32
+FL_64 = 0x000000040  # Is 64
+FL_NATIVE = 0x000000080  # native call (not EbcCal)
+FL_REL = 0x000000100  # relative address
+FL_CS = 0x000000200  # Condition flag is set
+FL_NCS = 0x000000400  # Condition flag is not set
+FL_INDIRECT = 0x000000800  # This is an indirect access (not immediate value)
+FL_SIGNED = 0x000001000  # This is a signed operand
+
+FL_ABSOLUTE = 1  # absolute: &addr
+FL_SYMBOLIC = 2  # symbolic: addr
 
 class DecodingError(Exception):
     pass
 
-class MyProcessor(processor_t):
+class ClemencyProcessor(processor_t):
     id = 0x8000 + 8899
     flag = PR_ADJSEGS | PRN_HEX
     cnbits = 9
@@ -80,8 +98,6 @@ class MyProcessor(processor_t):
     ]
 
     instruc = instrs = [
-        #{'name': 'lui', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'lui rd,imm'},
-        # 在这里按照上面的格式添加指令~~
         {'name': 'ad', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'AD RA, RB, RC'},
         {'name': 'adc', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1 , 'cmt': 'ADC RA, RB, RC + Carray_Bit'},
         {'name': 'adci', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1 , 'cmt': 'ADCI RA, RB, IMM'},
@@ -286,5 +302,91 @@ class MyProcessor(processor_t):
 
     instruc_end = len(instruc)
 
+    idphook = None
+
+    def __init__(self):
+        processor_t.__init__(self)
+        self._init_instructions()
+        #self._init_registers()
+        self.last_mh_array = [{'reg': -1, 'value': 0}]
+
+    def ana(self):
+        try:
+            return self._ana()
+        except DecodingError:
+            return 0
+
+    def emu(self):
+        return False
+
+    def out(self):
+        cmd = self.cmd
+        ft = cmd.get_canon_feature()
+        buf = init_output_buffer(1024)
+        OutMnem(15)
+        if ft & CF_USE1:
+            out_one_operand(0)
+        if ft & CF_USE2:
+            OutChar(',')
+            OutChar(' ')
+            out_one_operand(1)
+        if ft & CF_USE3:
+            OutChar(',')
+            OutChar(' ')
+            out_one_operand(2)
+        term_output_buffer()
+        cvar.gl_comm = 1
+        MakeLine(buf)
+
+    def outop(self):
+        optype = op.type
+        fl = op.specval
+
+        if optype == o_reg:
+            out_register(self.reg_names[op.reg])
+
+        elif optype == o_imm:
+            OutValue(op, OOFW_IMM | OOFW_32 | OOF_SIGNED)
+
+        elif optype in [o_near, o_mem]:
+            if optype == o_mem and fl == FL_ABSOLUTE:
+                out_symbol('&')
+            r = out_name_expr(op, op.addr, BADADDR)
+            if not r:
+                out_tagon(COLOR_ERROR)
+                out_tagon(COLOR_ERROR)
+                OutLong(op.addr, 16)
+                out_tagoff(COLOR_ERROR)
+                QueueSet(Q_noName, self.cmd.ea)
+                # OutLong(op.addr, 16)
+
+        elif optype == o_displ:
+            if fl & FL_INDIRECT:
+                out_symbol('[')
+            out_register(self.reg_names[op.reg])
+
+            OutValue(op, OOF_ADDR | OOFW_32 | OOFS_NEEDSIGN | OOF_SIGNED)
+
+            if fl & FL_INDIRECT:
+                out_symbol(']')
+
+        elif optype == o_phrase:
+            out_symbol('@')
+            out_register(self.regNames[op.reg])
+        else:
+            return False
+
+        return True
+
+
+    def _ana(self):
+        print(self.cmd)
+        return 1
+
+    def _init_instructions(self):
+        self.inames = {}
+        for idx, ins in enumerate(self.instrs):
+            self.inames[ins['name']] = idx
+
 def PROCESSOR_ENTRY():
-    return MyProcessor()
+    return ClemencyProcessor()
