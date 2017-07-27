@@ -1,8 +1,8 @@
 from idaapi import *
 from idc import *
 
-import pydevd
-pydevd.settrace('localhost', port=15306, stdoutToServer=True, stderrToServer=True,suspend=False,overwrite_prev_trace=True,patch_multiprocessing=True)
+#import pydevd
+#pydevd.settrace('localhost', port=15306, stdoutToServer=True, stderrToServer=True,suspend=False,overwrite_prev_trace=True,patch_multiprocessing=True)
 
 def accept_file(li,n):
     if n:
@@ -36,7 +36,7 @@ def load_file(li, neflags, format):
     fileLen = li.tell()
     li.seek(0,SEEK_SET)
     retBuf = li.read(fileLen)
-    convertedBuf = convent_bit(retBuf)
+    convertedBuf = convert_bit(retBuf)
     idaname = "ida64" if __EA64__ else "ida"
     if sys.platform == "win32":
         _mod = ctypes.windll[idaname + ".wll"]
