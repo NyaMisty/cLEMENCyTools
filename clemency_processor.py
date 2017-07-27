@@ -8,6 +8,8 @@ from idc import *
 import idautils
 import copy
 import ctypes
+import bitstring
+
 
 def SIGNEXT(x, b):
     m = 1 << (b - 1)
@@ -374,12 +376,1386 @@ class openrisc_processor_t(processor_t):
         dword = get_full_byte(ea)
         self.cmd.size += 1
         return dword
+    def _read_cmd_6bytes(self):
+        opcode = bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
+        opcode += bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
+        opcode += bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
+        opcode += bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
+        opcode += bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
+        opcode += bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
 
-    def _read_cmd_2byte(self):
-        ea = self.cmd.ea + self.cmd.size
-        dword = get_full_byte(ea)
-        self.cmd.size += 1
-        return dword
+        if opcode[0:7].uint == 0x0 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["AD"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x20 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["ADC"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x20 and opcode[24:26].uint == 0x1:
+            cmd.itype = self.inames["ADCI"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x22 and opcode[24:26].uint == 0x1:
+            cmd.itype = self.inames["ADCIM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x22 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["ADCM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x1 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["ADF"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x3 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["ADFM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x0 and opcode[24:26].uint == 0x1:
+            cmd.itype = self.inames["ADI"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x2 and opcode[24:26].uint == 0x1:
+            cmd.itype = self.inames["ADIM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x2 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["ADM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x14 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["AN"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x14 and opcode[24:26].uint == 0x1:
+            cmd.itype = self.inames["ANI"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x16 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["ANM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x30:
+            cmd.itype = self.inames["B"]
+            # TODO
+            # TODO
+            opcode_size = 3
+        elif opcode[0:9].uint == 0x14c and opcode[19:26].uint == 0x40:
+            cmd.itype = self.inames["BF"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[9:14].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[14:19].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:9].uint == 0x14e and opcode[19:26].uint == 0x40:
+            cmd.itype = self.inames["BFM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[9:14].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[14:19].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x32 and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["BR"]
+            # TODO
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[10:15].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:9].uint == 0x1c4:
+            cmd.itype = self.inames["BRA"]
+            # TODO
+            opcode_size = 4
+        elif opcode[0:9].uint == 0x1c0:
+            cmd.itype = self.inames["BRR"]
+            # TODO
+            opcode_size = 4
+        elif opcode[0:6].uint == 0x35:
+            cmd.itype = self.inames["C"]
+            # TODO
+            # TODO
+            opcode_size = 3
+        elif opcode[0:9].uint == 0x1cc:
+            cmd.itype = self.inames["CAA"]
+            # TODO
+            opcode_size = 4
+        elif opcode[0:9].uint == 0x1c8:
+            cmd.itype = self.inames["CAR"]
+            # TODO
+            opcode_size = 4
+        elif opcode[0:8].uint == 0xb8:
+            cmd.itype = self.inames["CM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[8:13].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[13:18].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:8].uint == 0xba:
+            cmd.itype = self.inames["CMF"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[8:13].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[13:18].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:8].uint == 0xbe:
+            cmd.itype = self.inames["CMFM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[8:13].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[13:18].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:8].uint == 0xb9:
+            cmd.itype = self.inames["CMI"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[8:13].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_imm
+            cmd[1].value = opcode[13:27].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:8].uint == 0xbd:
+            cmd.itype = self.inames["CMIM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[8:13].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_imm
+            cmd[1].value = opcode[13:27].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:8].uint == 0xbc:
+            cmd.itype = self.inames["CMM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[8:13].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[13:18].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x37 and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["CR"]
+            # TODO
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[10:15].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:18].uint == 0x3ffff:
+            cmd.itype = self.inames["DBRK"]
+            opcode_size = 2
+        elif opcode[0:12].uint == 0xa05 and opcode[17:18].uint == 0x0:
+            cmd.itype = self.inames["DI"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[12:17].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:7].uint == 0x34 and opcode[22:27].uint == 0x0:
+            cmd.itype = self.inames["DMT"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0xc and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["DV"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0xd and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["DVF"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0xf and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["DVFM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0xc and opcode[24:26].uint == 0x1:
+            cmd.itype = self.inames["DVI"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0xe and opcode[24:26].uint == 0x1:
+            cmd.itype = self.inames["DVIM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0xc and opcode[24:26].uint == 0x3:
+            cmd.itype = self.inames["DVIS"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0xe and opcode[24:26].uint == 0x3:
+            cmd.itype = self.inames["DVISM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0xe and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["DVM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0xc and opcode[22:26].uint == 0x2:
+            cmd.itype = self.inames["DVS"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0xe and opcode[22:26].uint == 0x2:
+            cmd.itype = self.inames["DVSM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:12].uint == 0xa04 and opcode[17:18].uint == 0x0:
+            cmd.itype = self.inames["EI"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[12:17].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:9].uint == 0x145 and opcode[19:27].uint == 0x0:
+            cmd.itype = self.inames["FTI"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[9:14].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[14:19].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:9].uint == 0x147 and opcode[19:27].uint == 0x0:
+            cmd.itype = self.inames["FTIM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[9:14].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[14:19].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:18].uint == 0x280c0:
+            cmd.itype = self.inames["HT"]
+            opcode_size = 2
+        elif opcode[0:18].uint == 0x28040:
+            cmd.itype = self.inames["IR"]
+            opcode_size = 2
+        elif opcode[0:9].uint == 0x144 and opcode[19:27].uint == 0x0:
+            cmd.itype = self.inames["ITF"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[9:14].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[14:19].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:9].uint == 0x146 and opcode[19:27].uint == 0x0:
+            cmd.itype = self.inames["ITFM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[9:14].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[14:19].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x54 and opcode[51:54].uint == 0x0:
+            cmd.itype = self.inames["LDS"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            # TODO
+            # TODO
+            # TODO
+            opcode_size = 6
+        elif opcode[0:7].uint == 0x56 and opcode[51:54].uint == 0x0:
+            cmd.itype = self.inames["LDT"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            # TODO
+            # TODO
+            # TODO
+            opcode_size = 6
+        elif opcode[0:7].uint == 0x55 and opcode[51:54].uint == 0x0:
+            cmd.itype = self.inames["LDW"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            # TODO
+            # TODO
+            # TODO
+            opcode_size = 6
+        elif opcode[0:7].uint == 0x10 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["MD"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x11 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["MDF"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x13 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["MDFM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x10 and opcode[24:26].uint == 0x1:
+            cmd.itype = self.inames["MDI"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x12 and opcode[24:26].uint == 0x1:
+            cmd.itype = self.inames["MDIM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x10 and opcode[24:26].uint == 0x3:
+            cmd.itype = self.inames["MDIS"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x12 and opcode[24:26].uint == 0x3:
+            cmd.itype = self.inames["MDISM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x12 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["MDM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x10 and opcode[22:26].uint == 0x2:
+            cmd.itype = self.inames["MDS"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x12 and opcode[22:26].uint == 0x2:
+            cmd.itype = self.inames["MDSM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:5].uint == 0x11:
+            cmd.itype = self.inames["MH"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[5:10].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_imm
+            cmd[1].value = opcode[10:27].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:5].uint == 0x12:
+            cmd.itype = self.inames["ML"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[5:10].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_imm
+            cmd[1].value = opcode[10:27].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:5].uint == 0x13:
+            cmd.itype = self.inames["MS"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[5:10].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_imm
+            cmd[1].value = opcode[10:27].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x8 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["MU"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x9 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["MUF"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0xb and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["MUFM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x8 and opcode[24:26].uint == 0x1:
+            cmd.itype = self.inames["MUI"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0xa and opcode[24:26].uint == 0x1:
+            cmd.itype = self.inames["MUIM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x8 and opcode[24:26].uint == 0x3:
+            cmd.itype = self.inames["MUIS"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0xa and opcode[24:26].uint == 0x3:
+            cmd.itype = self.inames["MUISM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0xa and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["MUM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x8 and opcode[22:26].uint == 0x2:
+            cmd.itype = self.inames["MUS"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0xa and opcode[22:26].uint == 0x2:
+            cmd.itype = self.inames["MUSM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:9].uint == 0x14c and opcode[19:26].uint == 0x0:
+            cmd.itype = self.inames["NG"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[9:14].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[14:19].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:9].uint == 0x14d and opcode[19:26].uint == 0x0:
+            cmd.itype = self.inames["NGF"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[9:14].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[14:19].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:9].uint == 0x14f and opcode[19:26].uint == 0x0:
+            cmd.itype = self.inames["NGFM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[9:14].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[14:19].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:9].uint == 0x14e and opcode[19:26].uint == 0x0:
+            cmd.itype = self.inames["NGM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[9:14].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[14:19].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:9].uint == 0x14c and opcode[19:26].uint == 0x20:
+            cmd.itype = self.inames["NT"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[9:14].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[14:19].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:9].uint == 0x14e and opcode[19:26].uint == 0x20:
+            cmd.itype = self.inames["NTM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[9:14].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[14:19].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x18 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["OR"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x18 and opcode[24:26].uint == 0x1:
+            cmd.itype = self.inames["ORI"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x1a and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["ORM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:18].uint == 0x28000:
+            cmd.itype = self.inames["RE"]
+            opcode_size = 2
+        elif opcode[0:12].uint == 0xa0c and opcode[17:18].uint == 0x0:
+            cmd.itype = self.inames["RF"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[12:17].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:7].uint == 0x30 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["RL"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x40 and opcode[24:26].uint == 0x0:
+            cmd.itype = self.inames["RLI"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x42 and opcode[24:26].uint == 0x0:
+            cmd.itype = self.inames["RLIM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x32 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["RLM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x52 and opcode[17:27].uint == 0x0:
+            cmd.itype = self.inames["RMP"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:9].uint == 0x14c and opcode[14:26].uint == 0x60:
+            cmd.itype = self.inames["RND"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[9:14].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:9].uint == 0x14e and opcode[14:26].uint == 0x60:
+            cmd.itype = self.inames["RNDM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[9:14].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x31 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["RR"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x41 and opcode[24:26].uint == 0x0:
+            cmd.itype = self.inames["RRI"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x43 and opcode[24:26].uint == 0x0:
+            cmd.itype = self.inames["RRIM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x33 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["RRM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x2d and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["SA"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x3d and opcode[24:26].uint == 0x0:
+            cmd.itype = self.inames["SAI"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x3f and opcode[24:26].uint == 0x0:
+            cmd.itype = self.inames["SAIM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x2f and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["SAM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x4 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["SB"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x24 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["SBC"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x24 and opcode[24:26].uint == 0x1:
+            cmd.itype = self.inames["SBCI"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x26 and opcode[24:26].uint == 0x1:
+            cmd.itype = self.inames["SBCIM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x26 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["SBCM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x5 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["SBF"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x7 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["SBFM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x4 and opcode[24:26].uint == 0x1:
+            cmd.itype = self.inames["SBI"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x6 and opcode[24:26].uint == 0x1:
+            cmd.itype = self.inames["SBIM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x6 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["SBM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:12].uint == 0xa07 and opcode[22:27].uint == 0x0:
+            cmd.itype = self.inames["SES"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[12:17].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[17:22].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:12].uint == 0xa08 and opcode[22:27].uint == 0x0:
+            cmd.itype = self.inames["SEW"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[12:17].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[17:22].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:12].uint == 0xa0b and opcode[17:18].uint == 0x0:
+            cmd.itype = self.inames["SF"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[12:17].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:7].uint == 0x28 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["SL"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x38 and opcode[24:26].uint == 0x0:
+            cmd.itype = self.inames["SLI"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x3a and opcode[24:26].uint == 0x0:
+            cmd.itype = self.inames["SLIM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x2a and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["SLM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x52 and opcode[17:18].uint == 0x1 and opcode[19:21].uint == 0x0:
+            cmd.itype = self.inames["SMP"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            # TODO
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x29 and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["SR"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x39 and opcode[24:26].uint == 0x0:
+            cmd.itype = self.inames["SRI"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x3b and opcode[24:26].uint == 0x0:
+            cmd.itype = self.inames["SRIM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x2b and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["SRM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x58 and opcode[51:54].uint == 0x0:
+            cmd.itype = self.inames["STS"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            # TODO
+            # TODO
+            # TODO
+            opcode_size = 6
+        elif opcode[0:7].uint == 0x5a and opcode[51:54].uint == 0x0:
+            cmd.itype = self.inames["STT"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            # TODO
+            # TODO
+            # TODO
+            opcode_size = 6
+        elif opcode[0:7].uint == 0x59 and opcode[51:54].uint == 0x0:
+            cmd.itype = self.inames["STW"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            # TODO
+            # TODO
+            # TODO
+            opcode_size = 6
+        elif opcode[0:18].uint == 0x28080:
+            cmd.itype = self.inames["WT"]
+            opcode_size = 2
+        elif opcode[0:7].uint == 0x1c and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["XR"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x1c and opcode[24:26].uint == 0x1:
+            cmd.itype = self.inames["XRI"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_imm
+            cmd[2].value = opcode[17:24].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:7].uint == 0x1e and opcode[22:26].uint == 0x0:
+            cmd.itype = self.inames["XRM"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].dtyp = dt_dword
+            cmd[2].type = o_reg
+            cmd[2].reg = opcode[17:22].uint
+            cmd[2].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:12].uint == 0xa09 and opcode[22:27].uint == 0x0:
+            cmd.itype = self.inames["ZES"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[12:17].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[17:22].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:12].uint == 0xa0a and opcode[22:27].uint == 0x0:
+            cmd.itype = self.inames["ZEW"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[12:17].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_reg
+            cmd[1].reg = opcode[17:22].uint
+            cmd[1].dtyp = dt_dword
+            opcode_size = 3
+        else:
+            raise DecodingError()
+        self.cmd.size = opcode_size
+        return opcode_size
+
 
     def _ana(self):
         cmd = self.cmd
@@ -391,7 +1767,13 @@ class openrisc_processor_t(processor_t):
         # ....... decode.....
         # else:
         #    raise DecodingError()
-        return cmd.size
+        buf = bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
+        buf += bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
+        buf += bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
+        buf += bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
+        buf += bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
+        buf += bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
+        return buf
 
     def ana(self):
         try:
