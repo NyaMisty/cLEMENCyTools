@@ -376,7 +376,8 @@ class openrisc_processor_t(processor_t):
         dword = get_full_byte(ea)
         self.cmd.size += 1
         return dword
-    def _read_cmd_6bytes(self):
+    def _ana(self):
+        cmd = self.cmd
         opcode = bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
         opcode += bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
         opcode += bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
@@ -1755,25 +1756,6 @@ class openrisc_processor_t(processor_t):
             raise DecodingError()
         self.cmd.size = opcode_size
         return opcode_size
-
-
-    def _ana(self):
-        cmd = self.cmd
-        # ua_next_dword() is also ok :)
-        opcode = self._read_cmd_dword()
-        # 如果解析出错的话就raise这个exception，一般是像下面这样用
-        # if ...... decode inst1
-        # if ...... decode inst2
-        # ....... decode.....
-        # else:
-        #    raise DecodingError()
-        buf = bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
-        buf += bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
-        buf += bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
-        buf += bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
-        buf += bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
-        buf += bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
-        return buf
 
     def ana(self):
         try:
