@@ -18,6 +18,8 @@ def SIGNEXT(x, b):
 def toInt(x):
     return ctypes.c_int(x & 0xffffffff).value
 
+EA_BITMASK = 0x7ffffff
+
 FL_B = 0x000000001  # 8 bits
 FL_W = 0x000000002  # 16 bits
 FL_D = 0x000000004  # 32 bits
@@ -36,11 +38,6 @@ FL_ABSOLUTE = 1  # absolute: &addr
 FL_SYMBOLIC = 2  # symbolic: addr
 
 PR_TINFO = 0x20000000  # not present in python??
-
-if __EA64__:
-    EA_BITMASK = 0xffffffffffffffff
-else:
-    EA_BITMASK = 0xffffffff
 
 class DecodingError(Exception):
     pass
@@ -74,44 +71,6 @@ class openrisc_processor_hook_t(IDP_Hooks):
     def use_stkarg_type3(self, ea, arg):
         return 0
 
-    def use_regarg_type3(self, ea, rargs):
-        length = decode_insn(ea)
-        if length <= 0:
-            return -1
-        ft = cmd.get_canon_feature()
-        regList = []
-        n = rargs.size()
-        idx = -1
-        if n is None or n < 0:
-            return 2
-        for i in xrange(0, n):
-            regList.append(rargs[i].argloc.reg1())
-        if ft & CF_USE1 and cmd[0].type == o_reg:
-            if cmd[0].reg in regList:
-                idx = cmd[0].reg
-                if ft & CF_CHG1:
-                    idx |= REG_SPOIL
-                return idx
-        if ft & CF_USE2 and cmd[1].type == o_reg:
-            if cmd[1].reg in regList:
-                idx = cmd[1].reg
-                if ft & CF_CHG2:
-                    idx |= REG_SPOIL
-                return idx
-        if ft & CF_USE3 and cmd[2].type == o_reg:
-            if cmd[2].reg in regList:
-                idx = cmd[2].reg
-                if ft & CF_CHG3:
-                    idx |= REG_SPOIL
-                return idx
-        if ft & CF_USE4 and cmd[3].type == o_reg:
-            if cmd[3].reg in regList:
-                idx = cmd[3].reg
-                if ft & CF_CHG4:
-                    idx |= REG_SPOIL
-                return idx
-        return idx
-
     def use_arg_types3(self, ea, fti, rargs):
         gen_use_arg_tinfos(ea, fti, rargs)
         return 2
@@ -124,19 +83,19 @@ class openrisc_processor_hook_t(IDP_Hooks):
 class openrisc_processor_t(processor_t):
     # id = 0x8001 + 0x5571C
     id = 243
-    flag = PR_SEGS | PRN_HEX | PR_RNAMESOK | PR_NO_SEGMOVE | PR_TINFO | PR_TYPEINFO
-    #flag = PR_SEGS | PRN_HEX | PR_RNAMESOK | PR_NO_SEGMOVE
-    cnbits = 8
-    dnbits = 8
-    author = "Deva & Misty"
-    psnames = ["RISC-V"]
-    plnames = ["RISC-V"]
+    #flag = PR_SEGS | PRN_HEX | PR_RNAMESOK | PR_NO_SEGMOVE | PR_TINFO | PR_TYPEINFO
+    flag = PR_SEGS | PRN_HEX | PR_RNAMESOK | PR_NO_SEGMOVE
+    cnbits = 9
+    dnbits = 9
+    author = "Tea Deliverers"
+    psnames = ["cLEMENCy"]
+    plnames = ["cLEMENCy"]
     segreg_size = 0
     instruc_start = 0
     assembler = {
         "flag": ASH_HEXF0 | ASD_DECF0 | ASO_OCTF5 | ASB_BINF0 | AS_N2CHR,
         "uflag": 0,
-        "name": "RISC-V asm",
+        "name": "cLEMENCy asm",
         "origin": ".org",
         "end": ".end",
         "cmnt": ";",
@@ -172,12 +131,120 @@ class openrisc_processor_t(processor_t):
         # 在这里填上寄存器的顺序
         # 记得也要留着下面的两行哦
         # virtual
+        "R0", "R1", "R2", "R3", "R4",
+        "R5", "R6", "R7", "R8", "R9",
+        "R10", "R11", "R12", "R13", "R14",
+        "R15", "R16", "R17", "R18", "R19",
+        "R20", "R21", "R22", "R23", "R24",
         "CS", "DS"
     ]
 
-    instruc = instrs = [#{'name': 'lui', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'lui rd,imm'},
-                        # 在这里按照上面的格式添加指令~~
-                        ]
+    instruc = instrs = [
+        #{'name': 'lui', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'lui rd,imm'},
+        # 在这里按照上面的格式添加指令~~
+        {'name': 'AD', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Add	AD rA, rB, rC'},
+        {'name': 'ADC', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Add With Carry	ADC rA, rB, rC'},
+        {'name': 'ADCI', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Add Immediate With Carry	ADCI rA, rB, IMM'},
+        {'name': 'ADCIM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1,
+         'cmt': 'Add Immediate Multi Reg With Carry	ADCIM rA, rB, IMM'},
+        {'name': 'ADCM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Add Multi Reg With Carry	ADCM rA, rB, rC'},
+        {'name': 'ADF', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Add Floating Point	ADF rA, rB, rC'},
+        {'name': 'ADFM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1,
+         'cmt': 'Add Floating Point Multi Reg	ADFM rA, rB, rC'},
+        {'name': 'ADI', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Add Immediate	ADI rA, rB, IMM'},
+        {'name': 'ADIM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Add Immediate Multi Reg	ADIM rA, rB, IMM'},
+        {'name': 'ADM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Add Multi Reg	ADM rA, rB, rC'},
+        {'name': 'AN', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'And	AN rA, rB, rC'},
+        {'name': 'ANI', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'And Immediate	ANI rA, rB, IMM'},
+        {'name': 'ANM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'And Multi Reg	ANM rA, rB, rC'},
+        {'name': 'B', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Branch Conditional	Bcc Offset'},
+        {'name': 'BF', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Bit Flip	BF rA, rB'},
+        {'name': 'BFM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Bit Flip Multi Reg	BFM rA, rB'},
+        {'name': 'BR', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Branch Register Conditional	BRcc rA'},
+        {'name': 'BRA', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Branch Absolute	BRA Location'},
+        {'name': 'BRR', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Branch Relative	BRR Offset'},
+        {'name': 'C', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Call Conditional	Ccc Offset'},
+        {'name': 'CAA', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Call Absolute	CAA Location'},
+        {'name': 'CAR', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Call Relative	CAR Offset'},
+        {'name': 'CM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Compare	CM rA, rB'},
+        {'name': 'CMF', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Compare Floating Point	CMF rA, rB'},
+        {'name': 'CMFM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1,
+         'cmt': 'Compare Floating Point Multi Reg	CMFM rA, rB'},
+        {'name': 'CMI', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Compare Immediate	CMI rA, IMM'},
+        {'name': 'CMIM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Compare Immediate Multi Reg	CMIM rA, IMM'},
+        {'name': 'CMM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Compare Multi Reg	CMM rA, rB'},
+        {'name': 'CR', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Call Register Conditional	CRcc rA'},
+        {'name': 'DBRK', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Debug Break	DBRK'},
+        {'name': 'DI', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Disable Interrupts	DI rA'},
+        {'name': 'DMT', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Direct Memory Transfer	DMT rA, rB, rC'},
+        {'name': 'DV', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Divide	DV rA, rB, rC'},
+        {'name': 'DVF', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Divide Floating Point	DVF rA, rB, rC'},
+        {'name': 'DVFM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1,
+         'cmt': 'Divide Floating Point Multi Reg	DVFM rA, rB, rC'},
+        {'name': 'DVI', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Divide Immediate	DVI rA, rB, IMM'},
+        {'name': 'DVIM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1,
+         'cmt': 'Divide Immediate Multi Reg	DVIM rA, rB, IMM'},
+        {'name': 'DVIS', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Divide Immediate Signed	DVIS rA, rB, IMM'},
+        {'name': 'DVISM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1,
+         'cmt': 'Divide Immediate Signed Multi Reg	DVISM rA, rB, IMM'},
+        {'name': 'DVM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Divide Multi Reg	DVM rA, rB, rC'},
+        {'name': 'DVS', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Divide Signed	DVS rA, rB, rC'},
+        {'name': 'DVSM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Divide Signed Multi Reg	DVSM rA, rB, rC'},
+        {'name': 'EI', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Enable Interrupts	EI rA'},
+        {'name': 'FTI', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Float to Integer	FTI rA, rB'},
+        {'name': 'FTIM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Float to Integer Multi Reg	FTIM rA, rB'},
+        {'name': 'HT', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Halt	HT'},
+        {'name': 'IR', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Interrupt Return	IR'},
+        {'name': 'ITF', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Integer to Float	ITF rA, rB'},
+        {'name': 'ITFM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Integer to Float Multi Reg	ITFM rA, rB'},
+        {'name': 'LDS', 'feature': CF_USE1 | CF_USE2 | CF_CHG1,
+         'cmt': 'Load Single	LDSm rA, [rB + Offset, RegCount]'},
+        {'name': 'LDT', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Load Tri	LDTm rA, [rB + Offset, RegCount]'},
+        {'name': 'LDW', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Load Word	LDWm rA, [rB + Offset, RegCount]'},
+        {'name': 'MD', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Modulus	MD rA, rB, rC'},
+        {'name': 'MDF', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Modulus Floating Point	MDF rA, rB, rC'},
+        {'name': 'MDFM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1,
+         'cmt': 'Modulus Floating Point Multi Reg	MDFM rA, rB, rC'},
+        {'name': 'MDI', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Modulus Immediate	MDI rA, rB, IMM'},
+        {'name': 'MDIM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1,
+         'cmt': 'Modulus Immediate Multi Reg	MDIM rA, rB, IMM'},
+        {'name': 'MDIS', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Modulus Immediate Signed	MDIS rA, rB, IMM'},
+        {'name': 'MDISM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1,
+         'cmt': 'Modulus Immediate Signed Multi Reg	MDISM rA, rB, IMM'},
+        {'name': 'MDM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Modulus Multi Reg	MDM rA, rB, rC'},
+        {'name': 'MDS', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Modulus Signed	MDS rA, rB, rC'},
+        {'name': 'MDSM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Modulus Signed Multi Reg	MDSM rA, rB, rC'},
+        {'name': 'MH', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Move High	MH rA, IMM'},
+        {'name': 'ML', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Move Low	ML rA, IMM'},
+        {'name': 'MS', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Move Low Signed	MS rA, IMM'},
+        {'name': 'MU', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Multiply	MU rA, rB, rC'},
+        {'name': 'MUF', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Multiply Floating Point	MUF rA, rB, rC'},
+        {'name': 'MUFM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1,
+         'cmt': 'Multiply Floating Point Multi Reg	MUFM rA, rB, rC'},
+        {'name': 'MUI', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Multiply Immediate	MUI rA, rB, IMM'},
+        {'name': 'MUIM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1,
+         'cmt': 'Multiply Immediate Multi Reg	MUIM rA, rB, IMM'},
+        {'name': 'MUIS', 'feature': CF_USE1 | CF_USE2 | CF_CHG1,
+         'cmt': 'Multiply Immediate Signed	MUIS rA, rB, IMM'},
+        {'name': 'MUISM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1,
+         'cmt': 'Multiply Immediate Signed Multi Reg	MUISM rA, rB, IMM'},
+        {'name': 'MUM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Multiply Multi Reg	MUM rA, rB, rC'},
+        {'name': 'MUS', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Multiply Signed	MUS rA, rB, rC'},
+        {'name': 'MUSM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Multiply Signed Multi Reg	MUSM rA, rB, rC'},
+        {'name': 'NG', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Negate	NG rA, rB'},
+        {'name': 'NGF', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Negate Floating Point	NGF rA, rB'},
+        {'name': 'NGFM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1,
+         'cmt': 'Negate Floating Point Multi Reg	NGFM rA, rB'},
+        {'name': 'NGM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Negate Multi Reg	NGM rA, rB'},
+        {'name': 'NT', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Not	NT rA, rB'},
+        {'name': 'NTM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Not Multi Reg	NTM rA, rB'},
+        {'name': 'OR', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Or	OR rA, rB, rC'},
+        {'name': 'ORI', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Or Immediate	ORI rA, rB, IMM'},
+        {'name': 'ORM', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Or Multi Reg	ORM rA, rB, rC'},
+        {'name': 'RE', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Return	RE'},
+        {'name': 'RF', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Read Flags	RF rA'},
+        {'name': 'RL', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Rotate Left	RL rA, rB, rC'},
+    ]
 
     instruc_end = len(instruc)
     idphook = None
@@ -186,7 +253,7 @@ class openrisc_processor_t(processor_t):
         processor_t.__init__(self)
         self._init_instructions()
         self._init_registers()
-        self.last_lui_array = [{'reg': -1, 'value': 0}]
+        self.last_mh_array = [{'reg': -1, 'value': 0}]
 
     def _init_instructions(self):
         self.inames = {}
@@ -200,10 +267,20 @@ class openrisc_processor_t(processor_t):
         self.regFirstSreg = self.regCodeSreg = self.reg_ids["CS"]
         self.regLastSreg = self.regDataSreg = self.reg_ids["DS"]
 
-    def _read_cmd_dword(self):
+    #
+    # Read a 9-bit byte
+    #
+    #
+    def _read_cmd_byte(self):
         ea = self.cmd.ea + self.cmd.size
-        dword = get_full_long(ea)
-        self.cmd.size += 4
+        dword = get_full_byte(ea)
+        self.cmd.size += 1
+        return dword
+
+    def _read_cmd_2byte(self):
+        ea = self.cmd.ea + self.cmd.size
+        dword = get_full_byte(ea)
+        self.cmd.size += 1
         return dword
 
     def _ana(self):
@@ -236,29 +313,29 @@ class openrisc_processor_t(processor_t):
             ua_add_cref(0, op.addr, fl)
 
     #这三个是下面simplify的辅助函数可以看看供为参考
-    def remove_lui_array_object(self, reg):
+    def remove_mh_array_object(self, reg):
         ret = None
         # print "remove_lui_array_object: %s" % (self.regNames[reg])
-        for idx, lui_record in enumerate(self.last_lui_array):
+        for idx, lui_record in enumerate(self.last_mh_array):
             if lui_record is None:
                 continue
             if lui_record["reg"] is None:
-                del self.last_lui_array[idx]
+                del self.last_mh_array[idx]
             elif lui_record["reg"] == reg:
                 ret = copy.deepcopy(lui_record)
-                del self.last_lui_array[idx]
+                del self.last_mh_array[idx]
         return ret
 
-    def get_lui_array_object(self, reg):
+    def get_mh_array_object(self, reg):
         ret = None
         # print "get_lui_array_object: %s" % (self.regNames[reg])
-        for idx, lui_record in enumerate(self.last_lui_array):
-            if lui_record is None:
+        for idx, mh_record in enumerate(self.last_mh_array):
+            if mh_record is None:
                 continue
-            if lui_record["reg"] is None:
-                del self.last_lui_array[idx]
-            elif lui_record["reg"] == reg:
-                ret = lui_record
+            if mh_record["reg"] is None:
+                del self.last_mh_array[idx]
+            elif mh_record["reg"] == reg:
+                ret = mh_record
         return ret
 
     def add_auto_resolved_address_comment(self, resolved_offset):
@@ -290,16 +367,15 @@ class openrisc_processor_t(processor_t):
     def simplify(self):
         if self.cmd.itype == self.inames['lui']:
             # print "lui at: %08X on reg %s value %Xh\n" % (self.cmd.ea, self.regNames[self.cmd[0].reg], self.cmd[1].value)
-            self.remove_lui_array_object(self.cmd[0].reg)
-            self.remove_auipc_array_object(self.cmd[0].reg)
-            self.last_lui_array.append({"reg": self.cmd[0].reg, "value": self.cmd[1].value})
+            self.remove_mh_array_object(self.cmd[0].reg)
+            self.last_mh_array.append({"reg": self.cmd[0].reg, "value": self.cmd[1].value})
             return
         elif self.cmd.itype == self.inames['ld'] or self.cmd.itype == self.inames['lw'] \
                 or self.cmd.itype == self.inames['lh'] or self.cmd.itype == self.inames['lb'] \
                 or self.cmd.itype == self.inames['ldu'] or self.cmd.itype == self.inames['lwu'] \
                 or self.cmd.itype == self.inames['lhu'] or self.cmd.itype == self.inames['lbu']:
-            last_record_lui = self.get_lui_array_object(self.cmd[1].reg)
-            self.remove_lui_array_object(self.cmd[0].reg)
+            last_record_lui = self.get_mh_array_object(self.cmd[1].reg)
+            self.remove_mh_array_object(self.cmd[0].reg)
             if last_record_lui != None:
                 target_offset = toInt((last_record_lui["value"] << 12) + self.cmd[1].addr)
                 if (isLoaded(target_offset)):
@@ -309,8 +385,8 @@ class openrisc_processor_t(processor_t):
             cmd = self.cmd
             ft = cmd.get_canon_feature()
             if ft & CF_CHG1:
-                last_record_lui = self.get_lui_array_object(self.cmd[1].reg)
-                self.remove_lui_array_object(self.cmd[0].reg)
+                last_record_lui = self.get_mh_array_object(self.cmd[1].reg)
+                self.remove_mh_array_object(self.cmd[0].reg)
                 if last_record_lui != None:
                     # print "trying to match addi or jalr for lui, cur ea: %08X" % (self.cmd.ea)
                     if self.cmd.itype == self.inames['addi']:
