@@ -203,13 +203,19 @@ class ClemencyProcessor(processor_t):
         opcode = self._read_cmd_word_bitstr()
         opcode_6 = opcode.append(self._read_cmd_word_bitstr())
         opcode_4 = BitStream(opcode_6[:27], 27).append(BitStream(opcode_6[36:45], 9))
-        for rins in ISA_DEF:
-            if opcode[:rins.opcode_bits] == rins.opcode:
-                saved_opcode = opcode
-                opcode = opcode_4 if rins.size_in_bytes == 4 else opcode_6
-                if (rins.subopcode is None or opcode[rins.subopcode_start:rins.subopcode_start+rins.subopcode_bits] == rins.subopcode):
-                    break
-                opcode = saved_opcode
+        okay = False
+        for bl in ISA_DEF_GROUPED_BY_OPLEN.keys():
+            cop = opcode[:bl]
+            insdic = ISA_DEF_GROUPED_BY_OPLEN[bl]
+            if cop in insdic:
+                for rins in insdic[cop]:
+                    saved_opcode = opcode
+                    opcode = opcode_4 if rins.size_in_bytes == 4 else opcode_6
+                    if (rins.subopcode is None or opcode[rins.subopcode_start:rins.subopcode_start+rins.subopcode_bits] == rins.subopcode):
+                        okay = True
+                        break
+                    opcode = saved_opcode
+            if okay: break
         else:
             raise DecodingError()
 
@@ -247,6 +253,7 @@ class ClemencyProcessor(processor_t):
                 if oper.name.startswith('r') and oper.name[1] in 'ABC':
                     cmd[idx].type = o_reg
                     cmd[idx].reg = val
+                    # <TODO>: Remove this hack.
                     if "Multi Reg" in self.instrs[cmd.itype]['cmt']:
                         cmd[idx].specval |= FL_MULTIREG
                 elif oper.name == 'imm':

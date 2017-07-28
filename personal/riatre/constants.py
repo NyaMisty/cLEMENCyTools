@@ -199,6 +199,10 @@ ZEW 0-11=0xa0a 12-16=rA 17-21=rB 22-26=0x0 3b'''
 ISA_DEF = map(ParseISADefinitionLine, ISA_DEF_STR.strip().split('\n'))
 
 ISA_DEF.sort(key=lambda x: x.opcode_bits)
+
+ISA_DEF_GROUPED_BY_OPLEN = collections.defaultdict(lambda: collections.defaultdict(lambda: []))
+for rins in ISA_DEF:
+	ISA_DEF_GROUPED_BY_OPLEN[rins.opcode_bits][rins.opcode].append(rins)
 # -------------------------------------------------
 
 # {'name': 'lui', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'lui rd,imm'},
