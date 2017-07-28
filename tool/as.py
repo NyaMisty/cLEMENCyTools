@@ -67,7 +67,8 @@ def assemble(fin, fout):
 
     buf = bytearray()
     for lineno, line in enumerate(fin.readlines(), 1):
-        if line.strip() == '': continue
+        line = line.strip()
+        if not line: continue
         m = re.match(r'^(\w+):$', line)
         if m:
             label = m.group(1)
@@ -87,6 +88,7 @@ def assemble(fin, fout):
                     inst = i
                     if cc not in CONDITION:
                         error('{}: unknown condition code `{}`', lineno, cc)
+                    break
             ops = [i.strip() for i in rest.split(',')]
             if inst not in table:
                 error('Unknown instruction `{}`'.format(inst))
