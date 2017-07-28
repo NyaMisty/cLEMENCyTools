@@ -13,8 +13,36 @@ class InvalidInstructionError(Exception):
 class DecodingError(Exception):
     pass
 
+def ToSignedInteger(x, bw):
+    return x - (1 << bw) if x & (1 << (bw - 1)) else x
+
 def MiddleEndianToBigEndian(bits):
     return bits[9:18]+bits[0:9]+bits[18:27]
+
+EA_BITMASK = 0x7ffffff
+
+FL_B = 0x000000001  # 8 bits
+FL_W = 0x000000002  # 16 bits
+FL_D = 0x000000004  # 32 bits
+FL_Q = 0x000000008  # 64 bits
+FL_OP1 = 0x000000010  # check operand 1
+FL_32 = 0x000000020  # Is 32
+FL_64 = 0x000000040  # Is 64
+FL_NATIVE = 0x000000080  # native call (not EbcCal)
+FL_REL = 0x000000100  # relative address
+FL_CS = 0x000000200  # Condition flag is set
+FL_NCS = 0x000000400  # Condition flag is not set
+FL_INDIRECT = 0x000000800  # This is an indirect access (not immediate value)
+FL_SIGNED = 0x000001000  # This is a signed operand
+FL_MULTIREG = 0x000002000
+
+FL_ABSOLUTE = 1  # absolute: &addr
+FL_SYMBOLIC = 2  # symbolic: addr
+
+o_regset = o_idpspec1
+o_cc = o_idpspec5
+
+PR_TINFO = 0x20000000  # not present in python??
 
 class openrisc_processor_hook_t(IDP_Hooks):
     def __init__(self):
@@ -361,10 +389,7 @@ class ClemencyProcessor(processor_t):
                (rins.subopcode is None or opcode[rins.subopcode_start:rins.subopcode_start+rins.subopcode_width].uint == rins.subopcode):
                 break
         else:
-            # A wild invalid instruction occured.
-            # _ana with a return value 0 indicates decoding failed.
-            # <TODO>: add log
-            return 0
+            raise DecodingError()
 
         cmd.itype = self.inames[rins.name]
         opcode_size = rins.size_in_bytes
@@ -374,138 +399,52 @@ class ClemencyProcessor(processor_t):
         elif opcode_size > 4: # at max 6
             opcode += self._read_cmd_word_bitstr()
 
-        for idx, oper in enumerate(rins.operands):
-            val = opcode[oper.start:oper.start+oper.width].uint
-            if oper.name.startswith('R') and oper.name[1] in 'ABC':
-                cmd[idx].type = o_reg
-                cmd[idx].reg = val
-                cmd[idx].dtyp = dt_dword
-            elif oper.name == 'imm':
-                cmd[idx].type = o_imm
-                cmd[idx].value = val
-                cmd[idx].dtyp = dt_dword
-            elif oper.name in ('Offset', 'Location'):
-                cmd[idx].type = o_near
-                cmd[idx].addr = val
-                cmd[idx].dtyp = dt_dword
-            elif not :
-                raise NotImplementedError('Instruction {1} needs custom handler but not implemented!'.format(rins.name))
+        # This is kinda dirty...
+        def ParseLoadStore():
+            cmd[0].type = o_regset
+            cmd[0].reg = opcode[7:12].uint
+            cmd[0].value = opcode[17:22].uint
+            cmd[0].dtyp = dt_dword
+            cmd[1].type = o_displ
+            cmd[1].specval |= FL_INDIRECT
+            cmd[1].reg = opcode[12:17].uint
+            cmd[1].addr = ToSignedInteger(opcode[24:51].uint, 27)
+            cmd[1].dtyp = dt_dword
 
-        return opcode_size
+        OverrideLDS = OverrideLDT = OverrideLDW = ParseLoadStore
+        OverrideSTS = OverrideSTT = OverrideSTW = ParseLoadStore
+        override_func_name = 'Override' + rins.name.upper()
+        if override_func_name in locals():
+            locals()[override_func_name]()
+        else:
+            for idx, oper in enumerate(rins.operands):
+                val = opcode[oper.start:oper.start+oper.width].uint
+                if oper.name.startswith('R') and oper.name[1] in 'ABC':
+                    cmd[idx].type = o_reg
+                    cmd[idx].reg = val
+                    if "Multi Reg" in self.instrs[cmd.itype]['cmt']:
+                        cmd[idx].specval |= FL_MULTIREG
+                elif oper.name == 'imm':
+                    cmd[idx].type = o_imm
+                    cmd[idx].value = val
+                elif oper.name == 'immS': # Signed Immediate
+                    cmd[idx].type = o_imm
+                    cmd[idx].value = ToSignedInteger(val, oper.width)
+                elif oper.name == 'Location':
+                    cmd[idx].type = o_near
+                    cmd[idx].addr = val
+                elif oper.name == 'Offset':
+                    cmd[idx].type = o_near
+                    cmd[idx].addr = cmd.ea + ToSignedInteger(val, oper.width)
+                elif oper.name == 'Condition':
+                    cmd[idx].type = o_cc
+                    cmd[idx].specval = val # Condition code
+                    newname = rins.name + CONDSUFFIX[val]
+                    cmd.itype = self.inames[newname]
+                else:
+                    raise NotImplementedError('Instruction {1} needs custom handler for its operands {2} but not implemented!'.format(rins.name, oper.name))
+                cmd[idx].dtyp = dt_dword
 
-        elif opcode[0:6].uint == 0x30:
-            cmd.itype = self.inames["b"]
-            # TODO
-            # TODO
-            opcode_size = 3
-        elif opcode[0:6].uint == 0x32 and opcode[15:18].uint == 0x0:
-            cmd.itype = self.inames["br"]
-            # TODO
-            cmd[1].type = o_reg
-            cmd[1].reg = opcode[10:15].uint
-            cmd[1].dtyp = dt_dword
-            opcode_size = 2
-        elif opcode[0:9].uint == 0x1c4:
-            cmd.itype = self.inames["bra"]
-            # TODO
-            opcode_size = 4
-        elif opcode[0:9].uint == 0x1c0:
-            cmd.itype = self.inames["brr"]
-            # TODO
-            opcode_size = 4
-        elif opcode[0:6].uint == 0x35:
-            cmd.itype = self.inames["c"]
-            # TODO
-            # TODO
-            opcode_size = 3
-        elif opcode[0:9].uint == 0x1cc:
-            cmd.itype = self.inames["caa"]
-            # TODO
-            opcode_size = 4
-        elif opcode[0:9].uint == 0x1c8:
-            cmd.itype = self.inames["car"]
-            # TODO
-            opcode_size = 4
-        elif opcode[0:6].uint == 0x37 and opcode[15:18].uint == 0x0:
-            cmd.itype = self.inames["cr"]
-            # TODO
-            cmd[1].type = o_reg
-            cmd[1].reg = opcode[10:15].uint
-            cmd[1].dtyp = dt_dword
-            opcode_size = 2
-        elif opcode[0:7].uint == 0x54 and opcode[51:54].uint == 0x0:
-            cmd.itype = self.inames["lds"]
-            cmd[0].type = o_reg
-            cmd[0].reg = opcode[7:12].uint
-            cmd[0].dtyp = dt_dword
-            cmd[1].type = o_reg
-            cmd[1].reg = opcode[12:17].uint
-            cmd[1].dtyp = dt_dword
-            # TODO
-            # TODO
-            # TODO
-            opcode_size = 6
-        elif opcode[0:7].uint == 0x56 and opcode[51:54].uint == 0x0:
-            cmd.itype = self.inames["ldt"]
-            cmd[0].type = o_reg
-            cmd[0].reg = opcode[7:12].uint
-            cmd[0].dtyp = dt_dword
-            cmd[1].type = o_reg
-            cmd[1].reg = opcode[12:17].uint
-            cmd[1].dtyp = dt_dword
-            # TODO
-            # TODO
-            # TODO
-            opcode_size = 6
-        elif opcode[0:7].uint == 0x55 and opcode[51:54].uint == 0x0:
-            cmd.itype = self.inames["ldw"]
-            cmd[0].type = o_reg
-            cmd[0].reg = opcode[7:12].uint
-            cmd[0].dtyp = dt_dword
-            cmd[1].type = o_reg
-            cmd[1].reg = opcode[12:17].uint
-            cmd[1].dtyp = dt_dword
-            # TODO
-            # TODO
-            # TODO
-            opcode_size = 6
-        elif opcode[0:7].uint == 0x58 and opcode[51:54].uint == 0x0:
-            cmd.itype = self.inames["sts"]
-            cmd[0].type = o_reg
-            cmd[0].reg = opcode[7:12].uint
-            cmd[0].dtyp = dt_dword
-            cmd[1].type = o_reg
-            cmd[1].reg = opcode[12:17].uint
-            cmd[1].dtyp = dt_dword
-            # TODO
-            # TODO
-            # TODO
-            opcode_size = 6
-        elif opcode[0:7].uint == 0x5a and opcode[51:54].uint == 0x0:
-            cmd.itype = self.inames["stt"]
-            cmd[0].type = o_reg
-            cmd[0].reg = opcode[7:12].uint
-            cmd[0].dtyp = dt_dword
-            cmd[1].type = o_reg
-            cmd[1].reg = opcode[12:17].uint
-            cmd[1].dtyp = dt_dword
-            # TODO
-            # TODO
-            # TODO
-            opcode_size = 6
-        elif opcode[0:7].uint == 0x59 and opcode[51:54].uint == 0x0:
-            cmd.itype = self.inames["stw"]
-            cmd[0].type = o_reg
-            cmd[0].reg = opcode[7:12].uint
-            cmd[0].dtyp = dt_dword
-            cmd[1].type = o_reg
-            cmd[1].reg = opcode[12:17].uint
-            cmd[1].dtyp = dt_dword
-            # TODO
-            # TODO
-            # TODO
-            opcode_size = 6
-        
         return opcode_size
 
     def ana(self):
@@ -730,6 +669,12 @@ class ClemencyProcessor(processor_t):
                 out_tagoff(COLOR_ERROR)
                 QueueSet(Q_noName, self.cmd.ea)
                 # OutLong(op.addr, 16)
+
+        elif optype == o_regset:
+            out_register(self.regNames[op.reg])
+            if op.value > 0:
+                out_symbol('-')
+                out_register(self.regNames[op.reg+op.value])
 
         elif optype == o_displ:
             if fl & FL_INDIRECT:
