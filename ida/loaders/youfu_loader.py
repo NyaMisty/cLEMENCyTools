@@ -56,7 +56,7 @@ def load_file(li, neflags, format):
     seg.startEA = 0
     seg.endEA = 0x4000000
     # seg.bitness = 1
-    idaapi.add_segm_ex( seg, "PROGRAM", "RAM", idaapi.ADDSEG_SPARSE )
+    idaapi.add_segm_ex( seg, "PROGRAM", "CODE", idaapi.ADDSEG_SPARSE )
     seg = idaapi.segment_t()
     seg.startEA = 0x4000000
     seg.endEA = 0x400001e

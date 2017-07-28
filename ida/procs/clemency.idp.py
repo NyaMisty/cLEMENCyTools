@@ -276,6 +276,8 @@ class ClemencyProcessor(processor_t):
                     # cmd[idx].type = o_cc
                     # cmd[idx].specval = val # Condition code
                     # cmd[idx].clr_shown()
+                    if val not in CONDSUFFIX:
+                        raise DecodingError()
                     newname = rins.name + CONDSUFFIX[val]
                     cmd.itype = self.inames[newname]
                     continue # this is a virtual operand
