@@ -36,7 +36,7 @@ ADJ_RB = {
     'D': 2,
 }
 
-def assemble(fin, fout):
+def assemble(fin, output, format):
     table = {}
     with open((pathlib.Path(__file__).resolve().parent.parent / 'isa.txt').as_posix()) as f:
         for lineno, line in enumerate(f.readlines(), 1):
@@ -63,10 +63,11 @@ def assemble(fin, fout):
                     error('{}: unknown recognized rhs `{}`', lineno, rhs)
                 table[inst.upper()] = entry
 
-    addr = x = n = 0
+    addr = 0
     label2addr = {}
     label2ref = collections.defaultdict(list)
-    buf = bytearray()
+    code = []
+    code_ends = []
     for lineno, line in enumerate(fin.readlines(), 1):
         line = line.strip()
         if not line: continue
@@ -76,6 +77,9 @@ def assemble(fin, fout):
             if label in label2addr:
                 error('{}: label `{}` redefined', lineno, label)
             label2addr[m.group(1)] = addr
+            for (offset, l, frm) in label2ref[label]:
+                pass
+            del label2ref[label]
         else:
             if ' ' in line:
                 inst, rest = line.split(' ', 1)
@@ -112,8 +116,7 @@ def assemble(fin, fout):
             entry = table[inst]
             # most instructions
 
-            n0 = n
-            nth = 0
+            nth = x = n = 0
             for l, i in entry:
                 if i in ('imm', 'Location', 'mem_off', 'Memory_Flags', 'Reg_Count'):
                     nth += 1
@@ -142,9 +145,11 @@ def assemble(fin, fout):
                     try:
                         t = int(t, 0)
                     except ValueError:
-                        if t not in label2addr:
-                            error('{}: unknown label `{}`', lineno, t)
-                        t = label2addr[t]
+                        if t in label2addr:
+                            t = label2addr[t]
+                        else:
+                            label2ref[t].append((n, l, addr))
+                            #error('{}: unknown label `{}`', lineno, t)
                     x = x << l | serialize_sign(l, t)
                 elif i == 'UF':
                     x = x << l | (1 if uf else 0)
@@ -155,38 +160,69 @@ def assemble(fin, fout):
                     error('{}: unknown recognized `{}`', lineno, i)
                 n += l
 
-            assert (n-n0) % 9 == 0, 'Unaligned op, please check'
-            addr += (n-n0) // 9
+            if uf:
+                error('{}: `{}` does not have UF', lineno, inst)
+            assert n % 9 == 0, 'Unaligned op, please check'
+            addr += n // 9
+            code_ends.append(addr)
+            while n >= 9:
+                code.append(x >> n-9)
+                x &= (1 << n-9) - 1
+                n -= 9
+            label = None
+
+    if label2ref:
+        error('Unknown labels {}', ' '.join(label2ref.keys()))
+
+    # middle endian
+    addr = 0
+    for i in code_ends:
+        for j in range(addr, i-1, 3):
+            code[j], code[j+1] = code[j+1], code[j]
+        addr = i
+
+    if format == '9bit':
+        fout = sys.stdout if output == '-' else open(output, 'w')
+        for i in code:
+            fout.write('{:03x} '.format(i))
+        fout.close()
+    elif format == 'bin':
+        fout = sys.stdout if output == '-' else open(output, 'w')
+        for i in code:
+            fout.write('{:09b} '.format(i))
+        fout.close()
+    elif format == 'octet':
+        n = x = 0
+        buf = bytearray()
+        for i in code:
+            x = x << 9 | i
+            n += 9
             while n >= 8:
                 buf.append(x >> n-8)
                 x &= (1 << n-8) - 1
                 n -= 8
-            if uf:
-                error('{}: `{}` does not have UF', lineno, inst)
-            label = None
-    if n > 0:
-        buf.append(x << 8-n)
-    fout.write(bytes(buf))
+        if n > 0:
+            buf.append(x << 8-n)
+        fout = sys.stdout if output == '-' else open(output, 'wb')
+        fout.write(bytes(buf))
+        fout.close()
 
 def main():
     ap = argparse.ArgumentParser(description='cLEMENCy assembler', formatter_class=argparse.RawDescriptionHelpFormatter, epilog='''
 Examples:
-./as.py
-./as.py
+./as.py -f 9bit clemency.s  # 100 120 003
+./as.py -f bin clemency.s  # 100000000 100100000
+./as.py -f octet clemency.s -o clemency.o
     ''')
-    ap.add_argument('-o', '--output', help='output filename')
+    ap.add_argument('-f', '--format', default='9bit', choices=('bin', 'octet', '9bit'), help='output filename')
+    ap.add_argument('-o', '--output', default='-', help='output filename')
     ap.add_argument('asm_file', help='')
     args = ap.parse_args()
-    if args.output is None:
-        args.output = args.asm_file + '.o'
-        if args.asm_file == '-':
-            error('Please specify -o when using - as input')
-    with open(args.output, 'wb') as fout:
-        if args.asm_file == '-':
-            assemble(sys.stdin, fout)
-        else:
-            with open(args.asm_file, 'r') as fin:
-                assemble(fin, fout)
+    if args.asm_file == '-':
+        assemble(sys.stdin, args.output, args.format)
+    else:
+        with open(args.asm_file, 'r') as fin:
+            assemble(fin, args.output, args.format)
 
 if __name__ == '__main__':
     main()
