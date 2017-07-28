@@ -11,9 +11,6 @@ import ctypes
 def ToSignedInteger(x, bw):
     return x - (1 << bw) if x & (1 << (bw - 1)) else x
 
-def MiddleEndianToBigEndian(bits):
-    return bits[9:18]+bits[0:9]+bits[18:27]
-
 EA_BITMASK = 0x7ffffff
 
 FL_B = 0x000000001  # 8 bits
@@ -84,6 +81,27 @@ class clemency_processor_hook_t(IDP_Hooks):
         p_purged_bytes = 0
         return 2
 
+class BitStream(object):
+    def __init__(self, v, bw):
+        self.v = v
+        self.bw = bw
+    def append(self, b):
+        return BitStream((self.v << b.bw) | b.v, self.bw + b.bw)
+    def __getitem__(self, key):
+        if type(key) is slice:
+            if key.start is None:
+                return self.v >> (self.bw-key.stop)
+            if key.stop is None:
+                raise IndexError('Weird Slice')
+            if key.start > key.stop: raise IndexError('Funny Slice')
+            return (self.v >> (self.bw-key.stop)) & ((1 << (key.stop-key.start))-1)
+        elif type(key) is int:
+            if key >= self.bw or key < 0: raise IndexError('Freaking Weird Index?!')
+            return (self.v >> (self.bw-1-key)) & 1
+
+def MiddleEndianToBigEndian(bits):
+    assert bits.bw == 27
+    return BitStream((bits[9:18] << 18) | (bits[0:9] << 9) | bits[18:27], 27)
 
 class ClemencyProcessor(processor_t):
     # id = 0x8001 + 0x5571C
@@ -452,14 +470,10 @@ class ClemencyProcessor(processor_t):
         return dword & 0x1ff
 
     def _read_cmd_byte_bitstr(self):
-        cur = bitstring.BitArray(length=9)
-        cur.uint = self._read_cmd_byte()
-        return cur
+        return BitStream(self._read_cmd_byte(), 9)
 
     def _read_cmd_word_bitstr(self):
-        word = bitstring.BitArray()
-        for i in xrange(3):
-            word += _read_cmd_byte_bitstr()
+        word = reduce(lambda a, b: a.append(b), [_read_cmd_byte_bitstr() for _ in xrange(3)])
         return MiddleEndianToBigEndian(word)
 
     def _ana(self):
@@ -467,8 +481,8 @@ class ClemencyProcessor(processor_t):
         opcode = self._read_cmd_word_bitstr()
         print opcode
         for rins in ISA_DEF:
-            if opcode[:rins.opcode_bits].uint == rins.opcode and
-               (rins.subopcode is None or opcode[rins.subopcode_start:rins.subopcode_start+rins.subopcode_width].uint == rins.subopcode):
+            if opcode[:rins.opcode_bits] == rins.opcode and
+               (rins.subopcode is None or opcode[rins.subopcode_start:rins.subopcode_start+rins.subopcode_width] == rins.subopcode):
                 break
         else:
             raise DecodingError()
@@ -481,21 +495,21 @@ class ClemencyProcessor(processor_t):
         elif opcode_size > 4: # at max 6
             opcode += self._read_cmd_word_bitstr()
         if rins.update_flag is not None:
-            if opcode[rins.update_flag:rins.update_flag].uint == 0:
+            if opcode[rins.update_flag:rins.update_flag] == 0:
                 cmd.auxpref |= PRFL_NOUF
 
         # This is kinda dirty...
         def ParseLoadStore():
             cmd[0].type = o_regset
-            cmd[0].reg = opcode[7:12].uint
-            cmd[0].value = opcode[17:22].uint
+            cmd[0].reg = opcode[7:12]
+            cmd[0].value = opcode[17:22]
             cmd[0].dtyp = dt_dword
             cmd[1].type = o_displ
             cmd[1].specval |= FL_INDIRECT
-            cmd[1].reg = opcode[12:17].uint
-            cmd[1].addr = ToSignedInteger(opcode[24:51].uint, 27)
+            cmd[1].reg = opcode[12:17]
+            cmd[1].addr = ToSignedInteger(opcode[24:51], 27)
             cmd[1].dtyp = dt_dword
-            adjB = opcode[22:24].uint
+            adjB = opcode[22:24]
             newname = rins.name[:2] + ['', 'i', 'ds'][adjB] + rins.name[2:]
             cmd.itype = self.inames[newname]
 
@@ -506,7 +520,7 @@ class ClemencyProcessor(processor_t):
             locals()[override_func_name]()
         else:
             for idx, oper in enumerate(rins.operands):
-                val = opcode[oper.start:oper.start+oper.width].uint
+                val = opcode[oper.start:oper.start+oper.width]
                 if oper.name.startswith('R') and oper.name[1] in 'ABC':
                     cmd[idx].type = o_reg
                     cmd[idx].reg = val
