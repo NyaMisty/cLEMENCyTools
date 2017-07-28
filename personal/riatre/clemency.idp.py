@@ -36,6 +36,8 @@ FL_INDIRECT = 0x000000800  # This is an indirect access (not immediate value)
 FL_SIGNED = 0x000001000  # This is a signed operand
 FL_MULTIREG = 0x000002000
 
+PRFL_NOUF = 0x1
+
 FL_ABSOLUTE = 1  # absolute: &addr
 FL_SYMBOLIC = 2  # symbolic: addr
 
@@ -400,6 +402,9 @@ class ClemencyProcessor(processor_t):
             opcode += self._read_cmd_byte_bitstr()
         elif opcode_size > 4: # at max 6
             opcode += self._read_cmd_word_bitstr()
+        if rins.update_flag is not None:
+            if opcode[rins.update_flag:rins.update_flag].uint == 0:
+                cmd.auxpref |= PRFL_NOUF
 
         # This is kinda dirty...
         def ParseLoadStore():
@@ -441,6 +446,7 @@ class ClemencyProcessor(processor_t):
                 elif oper.name == 'Condition':
                     cmd[idx].type = o_cc
                     cmd[idx].specval = val # Condition code
+                    cmd[idx].clr_shown()
                     newname = rins.name + CONDSUFFIX[val]
                     cmd.itype = self.inames[newname]
                 else:
@@ -688,7 +694,10 @@ class ClemencyProcessor(processor_t):
         cmd = self.cmd
         ft = cmd.get_canon_feature()
         buf = init_output_buffer(1024)
-        OutMnem(15)
+        if cmd.auxpref & PRFL_NOUF:
+            OutMnem(15, ".nf")
+        else:
+            OutMnem(15)
         if ft & CF_USE1:
             out_one_operand(0)
         if ft & CF_USE2:
