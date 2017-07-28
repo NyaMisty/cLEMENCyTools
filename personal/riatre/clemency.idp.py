@@ -132,14 +132,15 @@ class ClemencyProcessor(processor_t):
     # 在这里填上寄存器的顺序
     # 记得也要留着下面的两行哦
     # virtual
-    reg_names = regNames = ["R%d" % i for i in range()] + ["ST", "RA", "PC"] + ["CS", "DS"]
+    reg_names = regNames = ["R%d" % i for i in range(29)] + 
+                           ["ST", "RA", "PC", "FL"] + ["CS", "DS"]
 
-    #{'name': 'lui', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'lui rd,imm'},
+    # {'name': 'lui', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'lui rd,imm'},
     # 在这里按照上面的格式添加指令~~
     instruc = instrs = [
         {'name': 'ad', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'AD RA, RB, RC'},
-        {'name': 'adc', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1 , 'cmt': 'ADC RA, RB, RC + Carray_Bit'},
-        {'name': 'adci', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1 , 'cmt': 'ADCI RA, RB, IMM'},
+        {'name': 'adc', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'ADC RA, RB, RC + Carray_Bit'},
+        {'name': 'adci', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'ADCI RA, RB, IMM'},
         {'name': 'adcim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'ADCIM RA, RB, IMM (54bit-reg'},
         {'name': 'adcm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'ra:ra+1 <- rb:rb+1 + rc:rc+1 + C_B'},
         {'name': 'adf', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'add float num'},
@@ -168,44 +169,44 @@ class ClemencyProcessor(processor_t):
         {'name': 'bf', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'RA <- ~Rb'},
         {'name': 'bfm', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'RA:RA+1 <- ~RB:RB+1'},
         {'name': 'br', 'feature': CF_USE1 | CF_JUMP, 'cmt': 'always'},
-        {'name': 'brn', 'feature': CF_USE1 | CF_JUMP , 'cmt': 'not zero'},
-        {'name': 'brl', 'feature': CF_USE1 | CF_JUMP , 'cmt': '<'},
-        {'name': 'brle', 'feature': CF_USE1 | CF_JUMP , 'cmt': '<='},
-        {'name': 'brg', 'feature': CF_USE1 | CF_JUMP , 'cmt': '>'},
-        {'name': 'brge', 'feature': CF_USE1 | CF_JUMP , 'cmt': '>='},
-        {'name': 'brno', 'feature': CF_USE1 | CF_JUMP , 'cmt': 'not overflow'},
-        {'name': 'bro', 'feature': CF_USE1 | CF_JUMP , 'cmt': 'verflow'},
-        {'name': 'brns', 'feature': CF_USE1 | CF_JUMP , 'cmt': 'not signed'},
-        {'name': 'brs', 'feature': CF_USE1 | CF_JUMP , 'cmt': 'signed'},
-        {'name': 'brsl', 'feature': CF_USE1 | CF_JUMP , 'cmt': 'signed <'},
-        {'name': 'brsle', 'feature': CF_USE1 | CF_JUMP , 'cmt': 'signed <='},
-        {'name': 'brsg', 'feature': CF_USE1 | CF_JUMP , 'cmt': 'signed >'},
-        {'name': 'brsge', 'feature': CF_USE1 | CF_JUMP , 'cmt': 'signed >='},
-        {'name': 'bra', 'feature': CF_USE1 | CF_JUMP | CF_STOP , 'cmt': ''},
+        {'name': 'brn', 'feature': CF_USE1 | CF_JUMP, 'cmt': 'not zero'},
+        {'name': 'brl', 'feature': CF_USE1 | CF_JUMP, 'cmt': '<'},
+        {'name': 'brle', 'feature': CF_USE1 | CF_JUMP, 'cmt': '<='},
+        {'name': 'brg', 'feature': CF_USE1 | CF_JUMP, 'cmt': '>'},
+        {'name': 'brge', 'feature': CF_USE1 | CF_JUMP, 'cmt': '>='},
+        {'name': 'brno', 'feature': CF_USE1 | CF_JUMP, 'cmt': 'not overflow'},
+        {'name': 'bro', 'feature': CF_USE1 | CF_JUMP, 'cmt': 'verflow'},
+        {'name': 'brns', 'feature': CF_USE1 | CF_JUMP, 'cmt': 'not signed'},
+        {'name': 'brs', 'feature': CF_USE1 | CF_JUMP, 'cmt': 'signed'},
+        {'name': 'brsl', 'feature': CF_USE1 | CF_JUMP, 'cmt': 'signed <'},
+        {'name': 'brsle', 'feature': CF_USE1 | CF_JUMP, 'cmt': 'signed <='},
+        {'name': 'brsg', 'feature': CF_USE1 | CF_JUMP, 'cmt': 'signed >'},
+        {'name': 'brsge', 'feature': CF_USE1 | CF_JUMP, 'cmt': 'signed >='},
+        {'name': 'bra', 'feature': CF_USE1 | CF_JUMP | CF_STOP, 'cmt': ''},
         {'name': 'brr', 'feature': CF_USE1 | CF_JUMP | CF_STOP, 'cmt': ''},
         ##############
         {'name': 'c', 'feature': CF_CALL | CF_USE1, 'cmt': 'Call Always'},
-        {'name': 'cn', 'feature': CF_CALL | CF_USE1 , 'cmt': ' not zero'},
-        {'name': 'ce', 'feature': CF_CALL | CF_USE1 , 'cmt': 'zero'},
-        {'name': 'cl', 'feature': CF_CALL | CF_USE1 , 'cmt': '<'},
-        {'name': 'cle', 'feature': CF_CALL | CF_USE1 , 'cmt': '<='},
-        {'name': 'cg', 'feature': CF_CALL | CF_USE1 , 'cmt': '>'},
-        {'name': 'cge', 'feature': CF_CALL | CF_USE1 , 'cmt': '>='},
-        {'name': 'cno', 'feature': CF_CALL | CF_USE1 , 'cmt': 'not overflow'},
-        {'name': 'co', 'feature': CF_CALL | CF_USE1 , 'cmt': 'overflow'},
-        {'name': 'cns', 'feature': CF_CALL | CF_USE1 , 'cmt': 'not signed'},
-        {'name': 'cs', 'feature': CF_CALL | CF_USE1 , 'cmt': 'signed'},
-        {'name': 'csl', 'feature': CF_CALL | CF_USE1 , 'cmt': 'signed <'},
-        {'name': 'csle', 'feature': CF_CALL | CF_USE1 , 'cmt': 'signed <='},
-        {'name': 'csg', 'feature': CF_CALL | CF_USE1 , 'cmt': 'signed >'},
-        {'name': 'cge', 'feature': CF_CALL | CF_USE1 , 'cmt': 'signed >='},
+        {'name': 'cn', 'feature': CF_CALL | CF_USE1, 'cmt': ' not zero'},
+        {'name': 'ce', 'feature': CF_CALL | CF_USE1, 'cmt': 'zero'},
+        {'name': 'cl', 'feature': CF_CALL | CF_USE1, 'cmt': '<'},
+        {'name': 'cle', 'feature': CF_CALL | CF_USE1, 'cmt': '<='},
+        {'name': 'cg', 'feature': CF_CALL | CF_USE1, 'cmt': '>'},
+        {'name': 'cge', 'feature': CF_CALL | CF_USE1, 'cmt': '>='},
+        {'name': 'cno', 'feature': CF_CALL | CF_USE1, 'cmt': 'not overflow'},
+        {'name': 'co', 'feature': CF_CALL | CF_USE1, 'cmt': 'overflow'},
+        {'name': 'cns', 'feature': CF_CALL | CF_USE1, 'cmt': 'not signed'},
+        {'name': 'cs', 'feature': CF_CALL | CF_USE1, 'cmt': 'signed'},
+        {'name': 'csl', 'feature': CF_CALL | CF_USE1, 'cmt': 'signed <'},
+        {'name': 'csle', 'feature': CF_CALL | CF_USE1, 'cmt': 'signed <='},
+        {'name': 'csg', 'feature': CF_CALL | CF_USE1, 'cmt': 'signed >'},
+        {'name': 'cge', 'feature': CF_CALL | CF_USE1, 'cmt': 'signed >='},
         {'name': 'caa', 'feature': CF_CALL | CF_USE1, 'cmt': 'Call Absolute   RA=PC+4 pc = location'},
         {'name': 'car', 'feature': CF_CALL | CF_USE1, 'cmt': 'Call Relative   CAR Offset'},
-        {'name': 'cm', 'feature': CF_USE1 | CF_USE2 , 'cmt': 'Compare  CM rA, rB'},
-        {'name': 'cmf', 'feature': CF_USE1 | CF_USE2 , 'cmt': 'Compare Floating Point  CMF rA, rB'},
-        {'name': 'cmfm', 'feature': CF_USE1 | CF_USE2 ,'cmt': 'Compare Floating Point Multi Reg CMFM rA, rB'},
-        {'name': 'cmi', 'feature': CF_USE1 | CF_USE2 , 'cmt': 'Compare Immediate   CMI rA, IMM'},
-        {'name': 'cmim', 'feature': CF_USE1 | CF_USE2 , 'cmt': 'Compare Immediate Multi Reg  CMIM rA, IMM(ra:ra+1)'},
+        {'name': 'cm', 'feature': CF_USE1 | CF_USE2, 'cmt': 'Compare  CM rA, rB'},
+        {'name': 'cmf', 'feature': CF_USE1 | CF_USE2, 'cmt': 'Compare Floating Point  CMF rA, rB'},
+        {'name': 'cmfm', 'feature': CF_USE1 | CF_USE2,'cmt': 'Compare Floating Point Multi Reg CMFM rA, rB'},
+        {'name': 'cmi', 'feature': CF_USE1 | CF_USE2, 'cmt': 'Compare Immediate   CMI rA, IMM'},
+        {'name': 'cmim', 'feature': CF_USE1 | CF_USE2, 'cmt': 'Compare Immediate Multi Reg  CMIM rA, IMM(ra:ra+1)'},
         {'name': 'cmm', 'feature': CF_USE1 | CF_USE2, 'cmt': 'Compare Multi Reg   CMM rA, rB'},
         #
         {'name': 'cr', 'feature': CF_USE1 | CF_CALL, 'cmt': 'Call Register Conditional Always    CRcc rA'},
@@ -224,7 +225,7 @@ class ClemencyProcessor(processor_t):
         {'name': 'crsg', 'feature': CF_USE1 | CF_CALL, 'cmt': 's >'},
         {'name': 'crsge', 'feature': CF_USE1 | CF_CALL, 'cmt': 's >='},
         #
-        {'name': 'dbrk', 'feature': 0, 'cmt': 'Debug Break    DBRK'},
+        {'name': 'dbrk', 'feature': CF_STOP, 'cmt': 'Debug Break    DBRK'},
         {'name': 'di', 'feature': CF_USE1 , 'cmt': 'Disable Interrupts   DI rA'},
         {'name': 'dmt', 'feature': CF_USE1 | CF_USE2 | CF_USE3, 'cmt': 'copy data from [rb + p] to [ra + p] for rc times  DMT rA, rB, rC'},
         {'name': 'dv', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Divide   DV rA, rB, rC'},
@@ -241,14 +242,14 @@ class ClemencyProcessor(processor_t):
         #
         {'name': 'fti', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Float to Integer ra <- (int)rb ;FTI rA, rB'},
         {'name': 'ftim', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Float to Integer Multi Reg FTIM rA, rB'},
-        {'name': 'ht', 'feature': 0, 'cmt': 'Halt HT'},
-        {'name': 'ir', 'feature': 0, 'cmt': 'Interrupt Return IR'},
+        {'name': 'ht', 'feature': CF_STOP, 'cmt': 'Halt HT'},
+        {'name': 'ir', 'feature': CF_STOP, 'cmt': 'Interrupt Return IR'},
         {'name': 'itf', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Integer to Float    ITF rA, rB'},
         {'name': 'itfm', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Integer to Float Multi Reg ITFM rA, rB'},
         #load
-        {'name': 'lds', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_USE4 | CF_USE4 | CF_CHG1 | CF_CHG2,'cmt': 'Load Single    LDSm rA, [rB + Offset, RegCount]'},
-        {'name': 'ldt', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_USE4 | CF_USE4 | CF_CHG1 | CF_CHG2, 'cmt': 'Load Tri    LDTm rA, [rB + Offset, RegCount]'},
-        {'name': 'ldw', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_USE4 | CF_USE4 | CF_CHG1 | CF_CHG2, 'cmt': 'Load Word   LDWm rA, [rB + Offset, RegCount]'},
+        {'name': 'lds', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2, 'cmt': 'Load Single    LDSm rA, [rB + Offset, RegCount]'},
+        {'name': 'ldt', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2, 'cmt': 'Load Tri    LDTm rA, [rB + Offset, RegCount]'},
+        {'name': 'ldw', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2, 'cmt': 'Load Word   LDWm rA, [rB + Offset, RegCount]'},
         #
         {'name': 'md', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Modulus  MD rA, rB, rC'},
         {'name': 'mdf', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Modulus Floating Point  MDF rA, rB, rC'},
@@ -326,9 +327,9 @@ class ClemencyProcessor(processor_t):
         {'name': 'srim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Shift Right Immediate Multi Reg    SRIM rA, rB, IMM'},
         {'name': 'srm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Shift Right Multi Reg   SRM rA, rB, rC'},
         #
-        {'name': 'sts', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_USE4 | CF_USE4 | CF_CHG1 | CF_CHG2,'cmt': 'Store Single   STSm rA, [rB + Offset, RegCount]'},
-        {'name': 'stt', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_USE4 | CF_USE4 | CF_CHG1 | CF_CHG2, 'cmt': 'Store Tri   STTm rA, [rB + Offset, RegCount]'},
-        {'name': 'stw', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_USE4 | CF_USE4 | CF_CHG1 | CF_CHG2,'cmt': 'Store Word STWm rA, [rB + Offset, RegCount]'},
+        {'name': 'sts', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,'cmt': 'Store Single   STSm rA, [rB + Offset, RegCount]'},
+        {'name': 'stt', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2, 'cmt': 'Store Tri   STTm rA, [rB + Offset, RegCount]'},
+        {'name': 'stw', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,'cmt': 'Store Word STWm rA, [rB + Offset, RegCount]'},
         #
         {'name': 'wt', 'feature': 0, 'cmt': 'Wait WT'},
         {'name': 'xr', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Xor  XR rA, rB, rC'},
@@ -345,6 +346,7 @@ class ClemencyProcessor(processor_t):
         super(ClemencyProcessor, self).__init__(self)
         self._init_instructions()
         self._init_registers()
+        self.last_ml_array = [{'reg': -1, 'value': 0}]
         self.last_mh_array = [{'reg': -1, 'value': 0}]
 
     def _init_instructions(self):
@@ -465,6 +467,31 @@ class ClemencyProcessor(processor_t):
             ua_add_cref(0, op.addr, fl)
 
     #这三个是下面simplify的辅助函数可以看看供为参考
+    def remove_ml_array_object(self, reg):
+        ret = None
+        # print "remove_lui_array_object: %s" % (self.regNames[reg])
+        for idx, lui_record in enumerate(self.last_ml_array):
+            if lui_record is None:
+                continue
+            if lui_record["reg"] is None:
+                del self.last_ml_array[idx]
+            elif lui_record["reg"] == reg:
+                ret = copy.deepcopy(lui_record)
+                del self.last_ml_array[idx]
+        return ret
+
+    def get_ml_array_object(self, reg):
+        ret = None
+        # print "get_lui_array_object: %s" % (self.regNames[reg])
+        for idx, mh_record in enumerate(self.last_ml_array):
+            if mh_record is None:
+                continue
+            if mh_record["reg"] is None:
+                del self.last_ml_array[idx]
+            elif mh_record["reg"] == reg:
+                ret = mh_record
+        return ret
+
     def remove_mh_array_object(self, reg):
         ret = None
         # print "remove_lui_array_object: %s" % (self.regNames[reg])
@@ -517,42 +544,46 @@ class ClemencyProcessor(processor_t):
     # add data and far call offset
     #这里是简单的化简 供参考用
     def simplify(self):
-        if self.cmd.itype == self.inames['lui']:
-            # print "lui at: %08X on reg %s value %Xh\n" % (self.cmd.ea, self.regNames[self.cmd[0].reg], self.cmd[1].value)
-            self.remove_mh_array_object(self.cmd[0].reg)
-            self.last_mh_array.append({"reg": self.cmd[0].reg, "value": self.cmd[1].value})
+        if self.cmd.itype == self.inames['ml'] or self.cmd.itype == self.inames['ms']:
+            # print "ml/md at: %08X on reg %s value %Xh\n" % (self.cmd.ea, self.regNames[self.cmd[0].reg], self.cmd[1].value)
+            self.remove_ml_array_object(self.cmd[0].reg)
+            self.last_ml_array.append({"reg": self.cmd[0].reg, "value": self.cmd[1].value})
             return
-        elif self.cmd.itype == self.inames['ld'] or self.cmd.itype == self.inames['lw'] \
-                or self.cmd.itype == self.inames['lh'] or self.cmd.itype == self.inames['lb'] \
-                or self.cmd.itype == self.inames['ldu'] or self.cmd.itype == self.inames['lwu'] \
-                or self.cmd.itype == self.inames['lhu'] or self.cmd.itype == self.inames['lbu']:
-            last_record_lui = self.get_mh_array_object(self.cmd[1].reg)
-            self.remove_mh_array_object(self.cmd[0].reg)
-            if last_record_lui != None:
-                target_offset = toInt((last_record_lui["value"] << 12) + self.cmd[1].addr)
+        if self.cmd.itype == self.inames['mh']:
+            # print "mh at: %08X on reg %s value %Xh\n" % (self.cmd.ea, self.regNames[self.cmd[0].reg], self.cmd[1].value)
+            self.last_mh_array.append({"reg": self.cmd[0].reg, "value": self.cmd[1].value})
+        if self.cmd.itype == self.inames['lds'] or self.cmd.itype == self.inames['ldt'] \
+                or self.cmd.itype == self.inames['ldw'] or self.cmd.itype == self.inames['sts'] \
+                or self.cmd.itype == self.inames['stt'] or self.cmd.itype == self.inames['stw']:
+            last_record_ml = self.get_ml_array_object(self.cmd[1].reg)
+            self.remove_ml_array_object(self.cmd[0].reg)
+            if last_record_ml != None:
+                target_offset = toInt((last_record_ml["value"]) + self.cmd[1].addr)
                 if (isLoaded(target_offset)):
                     ua_add_dref(0, target_offset, dr_R)
                 self.add_auto_resolved_constant_comment(target_offset)
-        elif self.cmd[1].reg != None:
+            last_record_mh = self.get_mh_array_object(self.cmd[1].reg)
+            self.remove_mh_array_object(self.cmd[0].reg)
+            if last_record_mh != None:
+                target_offset = toInt((last_record_mh["value"] << 10) + self.cmd[1].addr)
+                if (isLoaded(target_offset)):
+                    ua_add_dref(0, target_offset, dr_R)
+                self.add_auto_resolved_constant_comment(target_offset)
+        else:
             cmd = self.cmd
             ft = cmd.get_canon_feature()
             if ft & CF_CHG1:
-                last_record_lui = self.get_mh_array_object(self.cmd[1].reg)
+                last_record_ml = self.remove_ml_array_object(self.cmd[0].reg)
                 self.remove_mh_array_object(self.cmd[0].reg)
-                if last_record_lui != None:
+                # print last_record_ml
+                if last_record_ml != None:
                     # print "trying to match addi or jalr for lui, cur ea: %08X" % (self.cmd.ea)
-                    if self.cmd.itype == self.inames['addi']:
-                        target_offset = toInt((last_record_lui["value"] << 12) + self.cmd[2].value)
+                    if self.cmd.itype == self.inames['mh']:
+                        target_offset = toInt((last_record_ml["value"]) + (self.cmd[1].value << 10))
                         if (isLoaded(target_offset)):
                             ua_add_dref(0, target_offset, dr_R)
                         self.add_auto_resolved_constant_comment(target_offset)
-                    elif self.cmd.itype == self.inames['jalr']:
-                        if self.cmd[0].reg == 1 and self.cmd[1].reg == 1:
-                            return
-                        target_offset = toInt((last_record_lui["value"] << 12) + self.cmd[2].value)
-                        if (isLoaded(target_offset)):
-                            ua_add_cref(0, target_offset, fl_JN)
-                        self.add_auto_resolved_constant_comment(target_offset)
+
     #这个函数不用动哒
     def add_stkpnt(self, pfn, v):
         if pfn:
@@ -569,12 +600,13 @@ class ClemencyProcessor(processor_t):
         # pfn = get_func(self.cmd.ea)
         # if not pfn:
         #    return
-        if self.cmd[0].reg != None and self.cmd[0].reg == 2 and self.cmd[1].reg != None and self.cmd[1].reg == 2 and \
+        """if self.cmd[0].reg != None and self.cmd[0].reg == 2 and self.cmd[1].reg != None and self.cmd[1].reg == 2 and \
                         self.cmd.itype in [self.inames['addi'], self.inames['addid'], self.inames['addiw']]:
             # print self.cmd[2].value
             spofs = toInt(self.cmd[2].value)
             # print spofs
-            self.add_stkpnt(self.cmd.ea, spofs)
+            self.add_stkpnt(self.cmd.ea, spofs)"""
+        pass
 
     def emu(self):
         cmd = self.cmd
@@ -739,28 +771,6 @@ class ClemencyProcessor(processor_t):
             self.idphook = None
         except:
             pass
-
-    # 处理是否是call指令（其实没什么用- -
-    # 返回<=0不是，返回2是，返回1不知道
-    def notify_is_call_insn(self, ea):
-        cmd = self.cmd
-        if cmd.itype == self.inames['jal']:
-            if cmd[0].reg == 0:
-                return 0
-            elif cmd[0].reg == 1:
-                return 2
-            else:
-                return 1
-            pass
-        elif cmd.itype == self.inames['jalr']:
-            if cmd[0].reg == 0:
-                return 0
-            elif cmd[1].reg == 1 and cmd[1].addr == 0:
-                return 0
-            elif cmd[0].reg == 1:
-                return 2
-            else:
-                return 1
 
 def PROCESSOR_ENTRY():
     return ClemencyProcessor()
