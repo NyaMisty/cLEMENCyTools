@@ -612,62 +612,20 @@ class ClemencyProcessor(processor_t):
         cmd = self.cmd
         # 下面的全是套路，flow是该指令是否将控制流传给下一条相邻指令的意思
         flow = False
+        # 其他指令正常处理
+        ft = cmd.get_canon_feature()
+        if ft & CF_USE1:
+            self._emu_operand(cmd[0])
+        if ft & CF_USE2:
+            self._emu_operand(cmd[1])
+        if ft & CF_USE3:
+            self._emu_operand(cmd[2])
+        if ft & CF_USE4:
+            self._emu_operand(cmd[3])
 
-        # 首先对特殊指令做处理
-        """if cmd.itype == self.inames['jal']:
-            # 无条件跳转 类似于x86 jmp
-            if cmd[0].reg == 0:
-                flow = False
-                ua_add_cref(0, cmd[1].addr, fl_JN)
-            # 带link跳转 类似于x86 call
-            if cmd[0].reg == 1:
-                flow = True
-                ua_add_cref(0, cmd[1].addr, fl_CN)
-                ua_add_cref(0, cmd.ea + cmd.size, fl_F)
-            # 其他情况
-            elif cmd[0].reg != 0:
-                ua_add_cref(0, cmd.ea + cmd.size, fl_F)
-                flow = True
-            pass
-        elif cmd.itype == self.inames['jalr']:
-            # 无条件跳转
-            if cmd[0].reg == 0:
-                flow = False
-            # 中间文件的用于重定位占位的特殊情况
-            elif cmd[0].reg == 1 and cmd[1].reg == 1 and cmd[1].addr == 0:
-                flow = True
-            # 跳转至link 相当于retn
-            elif cmd[1].reg == 1 and cmd[1].addr == 0:
-                flow = False
-            # 子函数调用 相当于call
-            elif cmd[0].reg == 1:
-                flow = True
-                ua_add_cref(0, cmd.ea + cmd.size, fl_F)
-                try:
-                    nn = netnode("$ simplified_addr", 0, False)
-                    if nn == BADNODE:
-                        raise Exception("Resolved addr not found")
-                    target = nn.altval(self.cmd.ea)
-                    ua_add_cref(0, target, fl_CN)
-                except:
-                    print "Error while making function from cmd.ea:0x%X" % (cmd.ea)
-            else:
-                flow = False
-        else
-            # 其他指令正常处理
-            ft = cmd.get_canon_feature()
-            if ft & CF_USE1:
-                self._emu_operand(cmd[0])
-            if ft & CF_USE2:
-                self._emu_operand(cmd[1])
-            if ft & CF_USE3:
-                self._emu_operand(cmd[2])
-            if ft & CF_USE4:
-                self._emu_operand(cmd[3])
-
-            elif not ft & CF_STOP:
-                ua_add_cref(0, cmd.ea + cmd.size, fl_F)
-                flow = True
+        elif not ft & CF_STOP:
+            ua_add_cref(0, cmd.ea + cmd.size, fl_F)
+            flow = True
         self.simplify()
         # trace the stack pointer if:
         #   - it is the second analysis pass
@@ -676,7 +634,7 @@ class ClemencyProcessor(processor_t):
             if flow:
                 self.trace_sp()  # trace modification of SP register
             else:
-                recalc_spd(self.cmd.ea)  # recalculate SP register for the next insn"""
+                recalc_spd(self.cmd.ea)  # recalculate SP register for the next insn
         return True
 
     # 剩下的这两个函数全是基本固定的 等出问题再说
