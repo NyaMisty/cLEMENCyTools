@@ -37,11 +37,17 @@ def assemble(fin, fout):
                 else:
                     l = bits[1]-bits[0]+1
                 # register
-                if rhs == 'Condition':
+                if rhs == 'Adj_rB':
+                    entry.append((l, rhs))
+                elif rhs == 'Condition':
                     entry.append((l, rhs))
                 elif rhs == 'imm':
-                    entry.append((l, 'imm'))
+                    entry.append((l, rhs))
                 elif rhs == 'Location':
+                    entry.append((l, rhs))
+                elif rhs == 'mem_off':
+                    entry.append((l, rhs))
+                elif rhs == 'Memory_Flags':
                     entry.append((l, rhs))
                 elif rhs.startswith('r'):
                     entry.append((l, 'r'))
@@ -50,6 +56,8 @@ def assemble(fin, fout):
                 elif rhs.startswith('0x'):
                     entry.append((l, int(rhs, 16)))
                 elif rhs == 'Offset':
+                    entry.append((l, rhs))
+                elif rhs == 'Reg_Count':
                     entry.append((l, rhs))
                 elif rhs == 'UF':
                     entry.append((l, rhs))
@@ -73,7 +81,7 @@ def assemble(fin, fout):
             if inst.endswith('.'):
                 uf = True
                 inst = inst[:-1]
-            ops = rest.split(',')
+            ops = [i.strip() for i in rest.split(',')]
             if inst not in table:
                 error('Unknown instruction `{}`'.format(inst))
             entry = table[inst]
@@ -81,23 +89,21 @@ def assemble(fin, fout):
             # most instructions
 
             for l, i in entry:
-                if i == 'imm':
+                if i in ('imm', 'Location', 'Memory_Flags'):
                     if not ops:
-                        error('{}: instruction `{}` has {} operand(s)', lineno, inst, len(entry))
-                    x = x << l | ops.pop(0)
+                        error('{}: instruction `{}`: missing operand(s)', lineno, inst, len(entry))
+                    x = x << l | int(ops.pop(0))
                 elif i == 'r':
                     if not ops:
-                        error('{}: instruction `{}` has {} operand(s)', lineno, inst, len(entry))
+                        error('{}: instruction `{}`: missing operand(s)', lineno, inst, len(entry))
                     t = ops.pop(0)
                     m = re.match(r'r(\d+)$', t, re.I)
                     if not m:
-                        error('{}: `{}` has {} operand(s)', lineno, inst, len(entry))
+                        error('{}: register operand', lineno)
                     x = x << l | int(m.group(1))
-                elif i == 'Location':
-                    x = x << l | i
                 elif i == 'Offset':
                     # TODO(label)
-                    x = x << l | i
+                    x = x << l | int(ops.pop(0))
                 elif i == 'UF':
                     x = x << l | (1 if uf else 0)
                     uf = False
