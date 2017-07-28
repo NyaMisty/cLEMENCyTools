@@ -2244,7 +2244,6 @@ class openrisc_processor_t(processor_t):
                 if (isLoaded(target_offset)):
                     ua_add_dref(0, target_offset, dr_R)
                 self.add_auto_resolved_constant_comment(target_offset)
-
             last_record_mh = self.get_mh_array_object(self.cmd[1].reg)
             self.remove_mh_array_object(self.cmd[0].reg)
             if last_record_mh != None:
@@ -2258,7 +2257,7 @@ class openrisc_processor_t(processor_t):
             if ft & CF_CHG1:
                 last_record_ml = self.remove_ml_array_object(self.cmd[0].reg)
                 self.remove_mh_array_object(self.cmd[0].reg)
-                print last_record_ml
+                #print last_record_ml
                 if last_record_ml != None:
                     # print "trying to match addi or jalr for lui, cur ea: %08X" % (self.cmd.ea)
                     if self.cmd.itype == self.inames['mh']:
