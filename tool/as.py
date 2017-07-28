@@ -109,7 +109,7 @@ def assemble(fin, output, format):
                     inst = i
                     if adj_rb not in ADJ_RB:
                         error('{}: unknown Adj_rB suffix `{}`', lineno, adj_rb)
-                    m = re.match(r'(r\d+),\[(r\d+)([+-][\dx]+)?,([\dx]+)\]', rest.replace(' ', ''))
+                    m = re.match(r'(\w+),\[(\w+)([+-][\dx]+)?,([\dx]+)\]', rest.replace(' ', ''))
                     if not m:
                         error('{}: {} invalid operands', lineno, inst)
                     ops = [m.group(1), m.group(2), m.group(4), m.group(3) or '0']
@@ -163,11 +163,19 @@ def assemble(fin, output, format):
                     nth += 1
                     if not ops:
                         error('{}: instruction `{}`: missing operand {}', lineno, inst, nth)
-                    t = ops.pop(0)
-                    m = re.match(r'r(\d+)$', t, re.I)
-                    if not m:
-                        error('{}: register operand', lineno)
-                    x = x << l | int(m.group(1))
+                    t = ops.pop(0).upper()
+                    if t == 'ST':
+                        t = 29
+                    elif t == 'RA':
+                        t = 30
+                    elif t == 'PC':
+                        t = 31
+                    else:
+                        m = re.match(r'r(\d+)$', t, re.I)
+                        if not m:
+                            error('{}: register operand', lineno)
+                        t = int(m.group(1))
+                    x = x << l | t
                 elif i == 'Location':
                     nth += 1
                     t = ops.pop(0)
