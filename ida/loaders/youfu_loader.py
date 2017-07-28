@@ -119,5 +119,5 @@ def load_file(li, neflags, format):
     idaapi.add_segm_ex( seg, "PROCID", "RAM", idaapi.ADDSEG_SPARSE )
     idaapi.add_entry(0, 0, "_start", True)
     # idc.AutoMark( 0, AU_CODE )
-
+    idaapi.cvar.inf.tribyte_order = idaapi.tbo_213
     return 1
