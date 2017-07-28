@@ -236,7 +236,7 @@ class openrisc_processor_t(processor_t):
         {'name': 'crsg', 'feature': CF_USE1 | CF_CALL, 'cmt': 's >'},
         {'name': 'crsge', 'feature': CF_USE1 | CF_CALL, 'cmt': 's >='},
         #
-        {'name': 'dbrk', 'feature': 0, 'cmt': 'Debug Break    DBRK'},
+        {'name': 'dbrk', 'feature': CF_STOP, 'cmt': 'Debug Break    DBRK'},
         {'name': 'di', 'feature': CF_USE1 , 'cmt': 'Disable Interrupts   DI rA'},
         {'name': 'dmt', 'feature': CF_USE1 | CF_USE2 | CF_USE3, 'cmt': 'copy data from [rb + p] to [ra + p] for rc times  DMT rA, rB, rC'},
         {'name': 'dv', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Divide   DV rA, rB, rC'},
@@ -253,8 +253,8 @@ class openrisc_processor_t(processor_t):
         #
         {'name': 'fti', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Float to Integer ra <- (int)rb ;FTI rA, rB'},
         {'name': 'ftim', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Float to Integer Multi Reg FTIM rA, rB'},
-        {'name': 'ht', 'feature': 0, 'cmt': 'Halt HT'},
-        {'name': 'ir', 'feature': 0, 'cmt': 'Interrupt Return IR'},
+        {'name': 'ht', 'feature': CF_STOP, 'cmt': 'Halt HT'},
+        {'name': 'ir', 'feature': CF_STOP, 'cmt': 'Interrupt Return IR'},
         {'name': 'itf', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Integer to Float    ITF rA, rB'},
         {'name': 'itfm', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Integer to Float Multi Reg ITFM rA, rB'},
         #load
