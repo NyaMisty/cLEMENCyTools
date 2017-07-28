@@ -109,7 +109,7 @@ def assemble(fin, output, format):
                     inst = i
                     if adj_rb not in ADJ_RB:
                         error('{}: unknown Adj_rB suffix `{}`', lineno, adj_rb)
-                    m = re.match(r'(r\d+),\[(r\d+)\+(\d+),(\d+)\]', rest.replace(' ', ''))
+                    m = re.match(r'(r\d+),\[(r\d+)([+-][\dx]+),([\dx]+)\]', rest.replace(' ', ''))
                     if not m:
                         error('{}: {} invalid operands', lineno, inst)
                     ops = [m.group(1), m.group(2), m.group(4), m.group(3)]
@@ -129,7 +129,7 @@ def assemble(fin, output, format):
                     if not ops:
                         error('{}: instruction `{}`: missing operand {}', lineno, inst, nth)
                     try:
-                        x = x << l | int(ops.pop(0), 0)
+                        x = x << l | serialize_sign(l, int(ops.pop(0), 0))
                     except ValueError:
                         error('{}: invalid immediate number', lineno)
                 elif i == 'Adj_rB':
