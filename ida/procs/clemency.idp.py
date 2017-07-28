@@ -83,7 +83,7 @@ class ClemencyProcessorHook(IDP_Hooks):
         return 2
 
     def get_autocmt(self):
-        return 1
+        return 2
 
 class BitStream(object):
     def __init__(self, v, bw):
@@ -207,6 +207,7 @@ class ClemencyProcessor(processor_t):
         opcode = self._read_cmd_word_bitstr()
         opcode_6 = opcode.append(self._read_cmd_word_bitstr())
         opcode_4 = BitStream(opcode_6[:27], 27).append(BitStream(opcode_6[36:45], 9))
+
         okay = False
         for bl in ISA_DEF_GROUPED_BY_OPLEN.keys():
             cop = opcode[:bl]
@@ -276,6 +277,8 @@ class ClemencyProcessor(processor_t):
                     # cmd[idx].type = o_cc
                     # cmd[idx].specval = val # Condition code
                     # cmd[idx].clr_shown()
+                    if val not in CONDSUFFIX:
+                        raise DecodingError()
                     newname = rins.name + CONDSUFFIX[val]
                     cmd.itype = self.inames[newname]
                     continue # this is a virtual operand

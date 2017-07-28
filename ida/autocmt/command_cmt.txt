@@ -1,0 +1,132 @@
+AD: Add
+ADC: Add With Carry
+ADCI: Add Immediate With Carry
+ADCIM: Add Immediate Multi Reg With
+ADCM: Add Multi Reg With Carry
+ADF: Add Floating Point
+ADFM: Add Floating Point Multi Reg
+ADI: Add Immediate
+ADIM: Add Immediate Multi Reg
+ADM: Add Multi Reg
+AN: And
+ANI: And Immediate
+ANM: And Multi Reg
+B: Branch Always
+BF: Bit Flip
+BFM: Bit Flip Multi Reg
+BRA: Branch Absolute
+BR: Branch Register Conditional
+BRR: Branch Relative
+CAA: Call Absolute
+CAR: Call Relative
+C: Call Always
+CM: Compare
+CMF: Compare Floating Point
+CMFM: Compare Floating Point Multi Reg
+CMI: Compare Immediate
+CMIM: Compare Immediate Multi Reg
+CMM: Compare Multi Reg
+CR: Call Register Conditional
+DBRK: Debug Break
+DI: Disable Interrupts
+DMT: Direct Memory Transfer
+DV: Divide
+DVF: Divide Floating Point
+DVFM: Divide Floating Point Multi Reg
+DVI: Divide Immediate
+DVIM: Divide Immediate Multi Reg
+DVIS: Divide Immediate Signed
+DVISM: Divide Immediate Signed Multi
+DVM: Divide Multi Reg
+DVS: Divide Signed
+DVSM: Divide Signed Multi Reg
+EI: Enable Interrupts
+FTI: Float to Integer
+FTIM: Float to Integer Multi Reg
+HT: Halt
+IR: Interrupt Return
+ITF: Integer to Float
+ITFM: Integer to Float Multi Reg
+LDS: Load Single
+LDT: Load Tri
+LDW: Load Word
+MDFM: Modulus Floating Point Multi Reg
+MDF: Modulus Floating Point
+MDIM: Modulus Immediate Multi Reg
+MDI: Modulus Immediate
+MDISM: Modulus Immediate Signed Multi
+MDIS: Modulus Immediate Signed
+MDM: Modulus Multi Reg
+MD: Modulus
+MDSM: Modulus Signed Multi Reg
+MDS: Modulus Signed
+MH: Move High
+ML: Move Low
+MS: Move Low Signed
+MUFM: Multiply Floating Point Multi Reg
+MUF: Multiply Floating Point
+MUIM: Multiply Immediate Multi Reg
+MUI: Multiply Immediate
+MUISM: Multiply Immediate Signed Multi
+MUIS: Multiply Immediate Signed
+MUM: Multiply Multi Reg
+MU: Multiply
+MUSM: Multiply Signed Multi Reg
+MUS: Multiply Signed
+NGFM: Negate Floating Point Multi Reg
+NGF: Negate Floating Point
+NGM: Negate Multi Reg
+NG: Negate
+NTM: Not Multi Reg
+NT: Not
+ORI: Or Immediate
+ORM: Or Multi Reg
+OR: Or
+RE: Return
+RF: Read Flags
+RLIM: Rotate Left Immediate Multi Reg
+RLI: Rotate Left Immediate
+RLM: Rotate Left Multi Reg
+RL: Rotate Left
+RMP: Read Memory Protection
+RNDM: Random Multi Reg
+RND: Random
+RRIM: Rotate Right Immediate Multi Reg
+RRI: Rotate Right Immediate
+RRM: Rotate Right Multi Reg
+RR: Rotate Right
+SAIM: Shift Arithemetic Right Immedi-
+SAI: Shift Arithemetic Right Immediate
+SAM: Shift Arithemetic Right Multi Reg
+SA: Shift Arithemetic Right
+SBCIM: Subtract Immediate Multi Reg
+SBCI: Subtract Immediate With Carry
+SBCM: Subtract Multi Reg With Carry
+SBC: Subtract With Carry
+SBFM: Subtract Floating Point Multi Reg
+SBF: Subtract Floating Point
+SBIM: Subtract Immediate Multi Reg
+SBI: Subtract Immediate
+SBM: Subtract Multi Reg
+SB: Subtract
+SES: Sign Extend Single
+SEW: Sign Extend Word
+SF: Set Flags
+SLIM: Shift Left Immediate Multi Reg
+SLI: Shift Left Immediate
+SLM: Shift Left Multi Reg
+SL: Shift Left
+SMP: Set Memory Protection
+SRIM: Shift Right Immediate Multi Reg
+SRI: Shift Right Immediate
+SRM: Shift Right Multi Reg
+SR: Shift Right
+STS: Store Single
+STT: Store Tri
+STW: Store Word
+WT: Wait
+XRI: Xor Immediate
+XRM: Xor Multi Reg
+XR: Xor
+ZES: Zero Extend Single
+ZEW: Zero Extend Word
