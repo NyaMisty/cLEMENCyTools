@@ -1279,7 +1279,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].reg = bitfield_12_17
             cmd[1].dtyp = dt_dword
             cmd[2].type = o_reg
-            cmd[2].reg = SIGNEXT(bitfield_17_22, 7)
+            cmd[2].reg = bitfield_17_22
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif bitfield_0_7 == 0xe and bitfield_22_26 == 0x2:
@@ -1291,7 +1291,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].reg = bitfield_12_17
             cmd[1].dtyp = dt_dword
             cmd[2].type = o_reg
-            cmd[2].reg = SIGNEXT(bitfield_17_22, 5)
+            cmd[2].reg = bitfield_17_22
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif bitfield_0_12 == 0xa04 and bitfield_17_18 == 0x0:
@@ -2639,7 +2639,7 @@ class openrisc_processor_t(processor_t):
             out_register(self.regNames[op.reg])
             if op.value > 0:
                 out_symbol('-')
-                out_register(self.regNames[op.reg + op.value])
+                out_register(self.regNames[op.reg + op.value + 1])
         elif optype == o_memflags:
             if op.value == 0:
                 out_keyword("N/A")
