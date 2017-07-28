@@ -1,5 +1,6 @@
 import idaapi
 import idc
+import ctypes
 
 def convert( data ):
     buf = 0
@@ -15,7 +16,9 @@ def convert( data ):
             result.append( t & 0xFF )
             result.append( t >> 8 )
     if remain:
-        result.append( remain )
+        p = buf << (9-remain)
+        result.append( p & 0xFF )
+        result.append( p >> 8 )
 
     return str( result )
 
@@ -46,12 +49,29 @@ def load_file(li, neflags, format):
     '''
     idaapi.set_processor_type( 'cLEMENCy', idaapi.SETPROC_USER | idaapi.SETPROC_FATAL )
     li.seek(0)
-    data = convert( li.read( li.size() ))
+    fileLen = li.size()
+    data = convert( li.read( fileLen ))
     if len(data) > 0x4000000:
         # program too large
         return 0
 
-    idaapi.mem2base( data, 0, len(data) )
+    idaname = "ida64" if __EA64__ else "ida"
+    if sys.platform == "win32":
+        _mod = ctypes.windll[idaname + ".wll"]
+    elif sys.platform == "linux2":
+        _mod = ctypes.cdll["lib" + idaname + ".so"]
+    elif sys.platform == "darwin":
+        _mod = ctypes.cdll["lib" + idaname + ".dylib"]
+    create_bytearray_linput = _mod.create_bytearray_linput
+    create_bytearray_linput.argtypes = (idaapi.POINTER(ctypes.c_ubyte), ctypes.c_int)
+    create_bytearray_linput.restype = ctypes.c_int
+    bufPointer = idaapi.cast(data, idaapi.POINTER(ctypes.c_ubyte))
+    retlinput = create_bytearray_linput(bufPointer,int(fileLen * 8 / 9 * 16 / 8))
+    file2base = _mod.file2base
+    file2base.argtypes = (ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int)
+    file2base.restype = ctypes.c_int
+    file2base(retlinput,0,0,int(fileLen * 8 / 9), idaapi.FILEREG_PATCHABLE)
+
     seg = idaapi.segment_t()
     seg.startEA = 0
     seg.endEA = 0x4000000

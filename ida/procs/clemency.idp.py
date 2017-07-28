@@ -207,6 +207,7 @@ class ClemencyProcessor(processor_t):
         opcode = self._read_cmd_word_bitstr()
         opcode_6 = opcode.append(self._read_cmd_word_bitstr())
         opcode_4 = BitStream(opcode_6[:27], 27).append(BitStream(opcode_6[36:45], 9))
+
         okay = False
         for bl in ISA_DEF_GROUPED_BY_OPLEN.keys():
             cop = opcode[:bl]
