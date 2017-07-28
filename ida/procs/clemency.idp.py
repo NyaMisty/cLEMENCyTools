@@ -207,6 +207,9 @@ class ClemencyProcessor(processor_t):
     instruc_end = len(instruc) + 1
     idphook = None
 
+    codestart = ['\x7a\x01\x03\x00']
+    retcodes = ['\x00\x00\x40\x01']
+
     def __init__(self):
         super(ClemencyProcessor, self).__init__()
         self._init_instructions()
