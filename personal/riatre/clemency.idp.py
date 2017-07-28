@@ -82,6 +82,9 @@ class ClemencyProcessorHook(IDP_Hooks):
         p_purged_bytes = 0
         return 2
 
+    def get_autocmt(self):
+        return 2
+
 class BitStream(object):
     def __init__(self, v, bw):
         self.v = v
@@ -106,6 +109,7 @@ def MiddleEndianToBigEndian(bits):
 
 class ClemencyProcessor(processor_t):
     # id = 0x8001 + 0x5571C
+    # <TODO>: It must be > 0x8000?
     id = 243
     # flag = PR_SEGS | PRN_HEX | PR_RNAMESOK | PR_NO_SEGMOVE | PR_TINFO | PR_TYPEINFO
     flag = PR_SEGS | PRN_HEX | PR_RNAMESOK | PR_NO_SEGMOVE

@@ -270,7 +270,7 @@ IDA_INSTR_DEF = [
     {'name': 'csl', 'feature': CF_CALL | CF_USE1, 'cmt': 'signed <'},
     {'name': 'csle', 'feature': CF_CALL | CF_USE1, 'cmt': 'signed <='},
     {'name': 'csg', 'feature': CF_CALL | CF_USE1, 'cmt': 'signed >'},
-    {'name': 'cge', 'feature': CF_CALL | CF_USE1, 'cmt': 'signed >='},
+    {'name': 'csge', 'feature': CF_CALL | CF_USE1, 'cmt': 'signed >='},
     {'name': 'caa', 'feature': CF_CALL | CF_USE1, 'cmt': 'Call Absolute   RA=PC+4 pc = location'},
     {'name': 'car', 'feature': CF_CALL | CF_USE1, 'cmt': 'Call Relative   CAR Offset'},
     {'name': 'cm', 'feature': CF_USE1 | CF_USE2, 'cmt': 'Compare  CM rA, rB'},
