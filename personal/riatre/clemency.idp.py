@@ -42,6 +42,7 @@ FL_ABSOLUTE = 1  # absolute: &addr
 FL_SYMBOLIC = 2  # symbolic: addr
 
 o_regset = o_idpspec1
+o_memflags = o_idpspec2
 o_cc = o_idpspec5
 
 PR_TINFO = 0x20000000  # not present in python??
@@ -249,9 +250,26 @@ class ClemencyProcessor(processor_t):
         {'name': 'itf', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Integer to Float    ITF rA, rB'},
         {'name': 'itfm', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Integer to Float Multi Reg ITFM rA, rB'},
         #load
-        {'name': 'lds', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2, 'cmt': 'Load Single    LDSm rA, [rB + Offset, RegCount]'},
-        {'name': 'ldt', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2, 'cmt': 'Load Tri    LDTm rA, [rB + Offset, RegCount]'},
-        {'name': 'ldw', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2, 'cmt': 'Load Word   LDWm rA, [rB + Offset, RegCount]'},
+        {'name': 'lds', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
+         'cmt': 'Load Single    LDSm rA, [rB + Offset, RegCount] (rB not modified)'},
+        {'name': 'ldt', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
+         'cmt': 'Load Tri    LDTm rA, [rB + Offset, RegCount] (rB not modified)'},
+        {'name': 'ldw', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
+         'cmt': 'Load Word   LDWm rA, [rB + Offset, RegCount] (rB not modified)'},
+
+        {'name': 'ldis', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
+         'cmt': 'Load Single    LDSm rA, [rB + Offset, RegCount] (rB substracted)'},
+        {'name': 'ldit', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
+         'cmt': 'Load Tri    LDTm rA, [rB + Offset, RegCount] (rB substracted)'},
+        {'name': 'ldiw', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
+         'cmt': 'Load Word   LDWm rA, [rB + Offset, RegCount] (rB substracted)'},
+
+        {'name': 'ldds', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
+         'cmt': 'Load Single    LDSm rA, [rB + Offset, RegCount] (rB added)'},
+        {'name': 'lddt', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
+         'cmt': 'Load Tri    LDTm rA, [rB + Offset, RegCount] (rB added)'},
+        {'name': 'lddw', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
+         'cmt': 'Load Word   LDWm rA, [rB + Offset, RegCount] (rB added)'},
         #
         {'name': 'md', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Modulus  MD rA, rB, rC'},
         {'name': 'mdf', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Modulus Floating Point  MDF rA, rB, rC'},
@@ -329,9 +347,26 @@ class ClemencyProcessor(processor_t):
         {'name': 'srim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Shift Right Immediate Multi Reg    SRIM rA, rB, IMM'},
         {'name': 'srm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Shift Right Multi Reg   SRM rA, rB, rC'},
         #
-        {'name': 'sts', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,'cmt': 'Store Single   STSm rA, [rB + Offset, RegCount]'},
-        {'name': 'stt', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2, 'cmt': 'Store Tri   STTm rA, [rB + Offset, RegCount]'},
-        {'name': 'stw', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,'cmt': 'Store Word STWm rA, [rB + Offset, RegCount]'},
+        {'name': 'sts', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
+         'cmt': 'Store Single   STSm rA, [rB + Offset, RegCount] (rB not modified)'},
+        {'name': 'stt', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
+         'cmt': 'Store Tri   STTm rA, [rB + Offset, RegCount] (rB not modified)'},
+        {'name': 'stw', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
+         'cmt': 'Store Word STWm rA, [rB + Offset, RegCount] (rB not modified)'},
+
+        {'name': 'stds', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
+         'cmt': 'Store Single   STSm rA, [rB + Offset, RegCount] (rB substracted)'},
+        {'name': 'stdt', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
+         'cmt': 'Store Tri   STTm rA, [rB + Offset, RegCount] (rB substracted)'},
+        {'name': 'stdw', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
+         'cmt': 'Store Word STWm rA, [rB + Offset, RegCount] (rB substracted)'},
+
+        {'name': 'stis', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
+         'cmt': 'Store Single   STSm rA, [rB + Offset, RegCount] '},
+        {'name': 'stit', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
+         'cmt': 'Store Tri   STTm rA, [rB + Offset, RegCount] (rB added)'},
+        {'name': 'stiw', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
+         'cmt': 'Store Word STWm rA, [rB + Offset, RegCount] (rB added)'},
         #
         {'name': 'wt', 'feature': 0, 'cmt': 'Wait WT'},
         {'name': 'xr', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Xor  XR rA, rB, rC'},
@@ -417,6 +452,9 @@ class ClemencyProcessor(processor_t):
             cmd[1].reg = opcode[12:17].uint
             cmd[1].addr = ToSignedInteger(opcode[24:51].uint, 27)
             cmd[1].dtyp = dt_dword
+            adjB = opcode[22:24].uint
+            newname = rins.name[:2] + ['', 'i', 'ds'][adjB] + rins.name[2:]
+            cmd.itype = self.inames[newname]
 
         OverrideLDS = OverrideLDT = OverrideLDW = ParseLoadStore
         OverrideSTS = OverrideSTT = OverrideSTW = ParseLoadStore
@@ -449,6 +487,9 @@ class ClemencyProcessor(processor_t):
                     cmd[idx].clr_shown()
                     newname = rins.name + CONDSUFFIX[val]
                     cmd.itype = self.inames[newname]
+                elif oper.name == 'Memory_Flags':
+                    cmd[idx].type = o_memflags
+                    cmd[idx].specval = val
                 else:
                     raise NotImplementedError('Instruction {1} needs custom handler for its operands {2} but not implemented!'.format(rins.name, oper.name))
                 cmd[idx].dtyp = dt_dword
@@ -572,8 +613,8 @@ class ClemencyProcessor(processor_t):
             self.remove_mh_array_object(self.cmd[0].reg)
             if last_record_mh != None:
                 target_offset = toInt((last_record_mh["value"] << 10) + self.cmd[1].addr)
-                if (isLoaded(target_offset)):
-                    ua_add_dref(0, target_offset, dr_R)
+                #if (isLoaded(target_offset)):
+                ua_add_dref(0, target_offset, dr_R)
                 self.add_auto_resolved_constant_comment(target_offset)
         else:
             cmd = self.cmd
@@ -671,6 +712,10 @@ class ClemencyProcessor(processor_t):
             if op.value > 0:
                 out_symbol('-')
                 out_register(self.regNames[op.reg+op.value])
+
+        elif optype == o_memflags:
+            if op.specval > 3: out_keyword("???")
+            else: out_keyword(['NA', 'RO', 'RW', 'RE'][op.specval])
 
         elif optype == o_displ:
             if fl & FL_INDIRECT:
