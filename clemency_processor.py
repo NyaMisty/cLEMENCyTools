@@ -384,24 +384,24 @@ class openrisc_processor_t(processor_t):
         return temp2+temp1+temp3
     def _ana(self):
         cmd = self.cmd
-        opcode = bitstring.BitArray()
+        temp_opcode = bitstring.BitArray()
         temp = bitstring.BitArray(length=9)
         temp.uint = (self._read_cmd_byte() & 0x1ff)
-        opcode += temp
+        temp_opcode += temp
         temp.uint = (self._read_cmd_byte() & 0x1ff)
-        opcode += temp
+        temp_opcode += temp
         temp.uint = (self._read_cmd_byte() & 0x1ff)
-        opcode += temp
-        opcode = self.convertMiddleEndian(opcode)
-        opcode = bitstring.BitArray()
+        temp_opcode += temp
+        opcode = self.convertMiddleEndian(temp_opcode)
+        temp_opcode = bitstring.BitArray()
         temp.uint = (self._read_cmd_byte() & 0x1ff)
-        opcode += temp
+        temp_opcode += temp
         temp.uint = (self._read_cmd_byte() & 0x1ff)
-        opcode += temp
+        temp_opcode += temp
         temp.uint = (self._read_cmd_byte() & 0x1ff)
-        opcode += temp
-        opcode += self.convertMiddleEndian(opcode)
-        print opcode
+        temp_opcode += temp
+        opcode += self.convertMiddleEndian(temp_opcode)
+        print hex(opcode.uint)
         if opcode[0:7].uint == 0x0 and opcode[22:26].uint == 0x0:
             cmd.itype = self.inames["ad"]
             cmd[0].type = o_reg
@@ -1618,7 +1618,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].reg = opcode[17:22].uint
             cmd[2].dtyp = dt_dword
             opcode_size = 3
-        elif opcode[0:7].uint == 0x52 and opcode[17:18].uint == 0x1 and opcode[19:21].uint == 0x0:
+        elif opcode[0:7].uint == 0x52 and opcode[17:18].uint == 0x1 and opcode[20:27].uint == 0x0:
             cmd.itype = self.inames["smp"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
