@@ -11,6 +11,10 @@ import ctypes
 def ToSignedInteger(x, bw):
     return x - (1 << bw) if x & (1 << (bw - 1)) else x
 
+
+def toInt(x):
+    return ctypes.c_int(x & 0xffffffff).value
+
 EA_BITMASK = 0x7ffffff
 
 FL_B = 0x000000001  # 8 bits
@@ -35,7 +39,6 @@ FL_SYMBOLIC = 2  # symbolic: addr
 
 o_regset = o_idpspec1
 o_memflags = o_idpspec2
-o_cc = o_idpspec5
 
 PR_TINFO = 0x20000000  # not present in python??
 
@@ -118,7 +121,7 @@ class ClemencyProcessor(processor_t):
     assembler = {
         "flag": ASH_HEXF0 | ASD_DECF0 | ASO_OCTF5 | ASB_BINF0 | AS_N2CHR,
         "uflag": 0,
-        "name": "cLEMENCy architecture",
+        "name": "cLEMENCy asm",
         "origin": ".org",
         "end": ".end",
         "cmnt": ";",
@@ -153,7 +156,7 @@ class ClemencyProcessor(processor_t):
     # 在这里填上寄存器的顺序
     # 记得也要留着下面的两行哦
     # virtual
-    reg_names = regNames = ["R%d" % i for i in range(29)] + 
+    reg_names = regNames = [("R%d" % i) for i in range(29)] + \
                            ["ST", "RA", "PC", "FL"] + ["CS", "DS"]
 
     # {'name': 'lui', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'lui rd,imm'},
@@ -441,7 +444,7 @@ class ClemencyProcessor(processor_t):
     idphook = None
 
     def __init__(self):
-        super(ClemencyProcessor, self).__init__(self)
+        super(ClemencyProcessor, self).__init__()
         self._init_instructions()
         self._init_registers()
         self.last_ml_array = [{'reg': -1, 'value': 0}]
@@ -473,29 +476,29 @@ class ClemencyProcessor(processor_t):
         return BitStream(self._read_cmd_byte(), 9)
 
     def _read_cmd_word_bitstr(self):
-        word = reduce(lambda a, b: a.append(b), [_read_cmd_byte_bitstr() for _ in xrange(3)])
+        word = reduce(lambda a, b: a.append(b), [self._read_cmd_byte_bitstr() for _ in xrange(3)])
         return MiddleEndianToBigEndian(word)
 
     def _ana(self):
         cmd = self.cmd
         opcode = self._read_cmd_word_bitstr()
-        print opcode
+        opcode_6 = opcode.append(self._read_cmd_word_bitstr())
+        opcode_4 = BitStream(opcode_6[:27], 27).append(BitStream(opcode_6[36:45], 9))
         for rins in ISA_DEF:
-            if opcode[:rins.opcode_bits] == rins.opcode and
-               (rins.subopcode is None or opcode[rins.subopcode_start:rins.subopcode_start+rins.subopcode_width] == rins.subopcode):
-                break
+            if opcode[:rins.opcode_bits] == rins.opcode:
+                saved_opcode = opcode
+                opcode = opcode_4 if rins.size_in_bytes == 4 else opcode_6
+                if (rins.subopcode is None or opcode[rins.subopcode_start:rins.subopcode_start+rins.subopcode_bits] == rins.subopcode):
+                    break
+                opcode = saved_opcode
         else:
             raise DecodingError()
 
         cmd.itype = self.inames[rins.name]
         opcode_size = rins.size_in_bytes
         self.cmd.size = opcode_size
-        if opcode_size == 4:
-            opcode += self._read_cmd_byte_bitstr()
-        elif opcode_size > 4: # at max 6
-            opcode += self._read_cmd_word_bitstr()
         if rins.update_flag is not None:
-            if opcode[rins.update_flag:rins.update_flag] == 0:
+            if opcode[rins.update_flag] == 0:
                 cmd.auxpref |= PRFL_NOUF
 
         # This is kinda dirty...
@@ -510,7 +513,7 @@ class ClemencyProcessor(processor_t):
             cmd[1].addr = ToSignedInteger(opcode[24:51], 27)
             cmd[1].dtyp = dt_dword
             adjB = opcode[22:24]
-            newname = rins.name[:2] + ['', 'i', 'ds'][adjB] + rins.name[2:]
+            newname = rins.name[:2] + ['', 'i', 'd'][adjB] + rins.name[2:]
             cmd.itype = self.inames[newname]
 
         OverrideLDS = OverrideLDT = OverrideLDW = ParseLoadStore
@@ -519,9 +522,10 @@ class ClemencyProcessor(processor_t):
         if override_func_name in locals():
             locals()[override_func_name]()
         else:
-            for idx, oper in enumerate(rins.operands):
+            idx = 0
+            for oper in rins.operands:
                 val = opcode[oper.start:oper.start+oper.width]
-                if oper.name.startswith('R') and oper.name[1] in 'ABC':
+                if oper.name.startswith('r') and oper.name[1] in 'ABC':
                     cmd[idx].type = o_reg
                     cmd[idx].reg = val
                     if "Multi Reg" in self.instrs[cmd.itype]['cmt']:
@@ -539,17 +543,19 @@ class ClemencyProcessor(processor_t):
                     cmd[idx].type = o_near
                     cmd[idx].addr = cmd.ea + ToSignedInteger(val, oper.width)
                 elif oper.name == 'Condition':
-                    cmd[idx].type = o_cc
-                    cmd[idx].specval = val # Condition code
-                    cmd[idx].clr_shown()
+                    # cmd[idx].type = o_cc
+                    # cmd[idx].specval = val # Condition code
+                    # cmd[idx].clr_shown()
                     newname = rins.name + CONDSUFFIX[val]
                     cmd.itype = self.inames[newname]
+                    continue # this is a virtual operand
                 elif oper.name == 'Memory_Flags':
                     cmd[idx].type = o_memflags
                     cmd[idx].specval = val
                 else:
-                    raise NotImplementedError('Instruction {1} needs custom handler for its operands {2} but not implemented!'.format(rins.name, oper.name))
+                    raise NotImplementedError('Instruction {0} needs custom handler for its operands {1} but not implemented!'.format(rins.name, oper.name))
                 cmd[idx].dtyp = dt_dword
+                idx += 1
 
         return opcode_size
 
@@ -787,7 +793,6 @@ class ClemencyProcessor(processor_t):
         elif optype == o_memflags:
             if op.specval > 3: out_keyword("???")
             else: out_keyword(['NA', 'RO', 'RW', 'RE'][op.specval])
-
         elif optype == o_displ:
             if fl & FL_INDIRECT:
                 out_symbol('[')
