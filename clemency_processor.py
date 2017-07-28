@@ -1,5 +1,8 @@
 # coding=utf-8
 
+import pydevd
+pydevd.settrace('localhost', port=15306, stdoutToServer=True, stderrToServer=True,suspend=False,overwrite_prev_trace=True,patch_multiprocessing=True)
+
 
 from idaapi import *
 from idc import *
@@ -88,6 +91,50 @@ class openrisc_processor_hook_t(IDP_Hooks):
         p_purged_bytes = 0
         return 2
 
+
+
+class clemency_data_type(data_type_t):
+    def __init__(self):
+        data_type_t.__init__(self, name="cLEMENCy",
+                             value_size = 2, menu_name = "cLEMENCy string",
+                             asm_keyword = ".clemency")
+
+    def calc_item_size(self, ea, maxsize):
+        # Custom data types may be used in structure definitions. If this case
+        # ea is a member id. Check for this situation and return 1
+        if is_member_id(ea):
+            return 1
+        ea_end = ea
+        while ea_end - ea < maxsize:
+            if not isLoaded(ea_end):
+                break
+            if Byte(ea_end) == 0:
+                break
+            ea_end += 1
+        return ea_end - ea + 1
+
+
+class clemency_data_format(data_format_t):
+    FORMAT_NAME = "cLEMENCy string"
+    def __init__(self):
+        data_format_t.__init__(self, name=clemency_data_format.FORMAT_NAME)
+
+    def printf(self, value, current_ea, operand_num, dtid):
+        # Take the length byte
+        retsize = get_item_size(current_ea)
+        if retsize <= 0:
+            return 0
+        retsize -= 1
+        buf = GetManyBytes(current_ea,retsize * 2)
+        temp_buf = '"' + buf.decode('utf-16-le') + '", 0'
+        temp_buf.replace('\n','", 0Ah, "')
+        temp_buf.replace('"", ','')
+        print type(temp_buf)
+        return temp_buf.encode("utf-8")
+
+new_formats = [
+    (clemency_data_type(), clemency_data_format()),
+]
 
 class openrisc_processor_t(processor_t):
     # id = 0x8001 + 0x5571C
@@ -1590,6 +1637,7 @@ class openrisc_processor_t(processor_t):
             cmd[0].reg = bitfield_5_10
             cmd[0].dtyp = dt_dword
             cmd[1].type = o_imm
+            cmd[1].type = o_imm
             cmd[1].value = SIGNEXT(bitfield_10_27, 17)
             cmd[1].dtyp = dt_dword
             opcode_size = 3
@@ -2705,6 +2753,10 @@ class openrisc_processor_t(processor_t):
             idp_hook_stat = ""
             self.idphook = openrisc_processor_hook_t()
             self.idphook.hook()
+        if not register_data_types_and_formats(new_formats):
+            print "Failed to register types!"
+        else:
+            print "Formats installed!"
         # cvar.inf.mf = LITTLE_ENDIAN
         return True
 
@@ -2719,6 +2771,7 @@ class openrisc_processor_t(processor_t):
             self.idphook = None
         except:
             pass
+        unregister_data_types_and_formats(new_formats)
 
 
 def PROCESSOR_ENTRY():
