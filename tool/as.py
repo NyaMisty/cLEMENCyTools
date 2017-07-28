@@ -23,6 +23,12 @@ CONDITION = {
     '': 14,
 }
 
+ADJ_RB = {
+    '': 0,
+    'I': 1,
+    'D': 2,
+}
+
 def assemble(fin, fout):
     table = {}
     with open(pathlib.Path(__file__).resolve().parent.parent / 'isa.txt') as f:
@@ -37,17 +43,8 @@ def assemble(fin, fout):
                 else:
                     l = bits[1]-bits[0]+1
                 # register
-                if rhs == 'Adj_rB':
-                    entry.append((l, rhs))
-                elif rhs == 'Condition':
-                    entry.append((l, rhs))
-                elif rhs == 'imm':
-                    entry.append((l, rhs))
-                elif rhs == 'Location':
-                    entry.append((l, rhs))
-                elif rhs == 'mem_off':
-                    entry.append((l, rhs))
-                elif rhs == 'Memory_Flags':
+
+                if rhs in ('Adj_rB', 'Condition', 'imm', 'Location', 'mem_off', 'Memory_Flags', 'Offset', 'Reg_Count', 'UF'):
                     entry.append((l, rhs))
                 elif rhs.startswith('r'):
                     entry.append((l, 'r'))
@@ -55,12 +52,6 @@ def assemble(fin, fout):
                     entry.append((l, int(rhs, 16)))
                 elif rhs.startswith('0x'):
                     entry.append((l, int(rhs, 16)))
-                elif rhs == 'Offset':
-                    entry.append((l, rhs))
-                elif rhs == 'Reg_Count':
-                    entry.append((l, rhs))
-                elif rhs == 'UF':
-                    entry.append((l, rhs))
                 else:
                     error('{}: unknown recognized rhs `{}`', lineno, rhs)
                 table[inst.upper()] = entry
@@ -89,7 +80,19 @@ def assemble(fin, fout):
                     if cc not in CONDITION:
                         error('{}: unknown condition code `{}`', lineno, cc)
                     break
-            ops = [i.strip() for i in rest.split(',')]
+            for i in ['LDS', 'LDT', 'LDW', 'STS', 'STT', 'STW']:
+                if inst.startswith(i):
+                    adj_rb = inst[len(i):].lower()
+                    inst = i
+                    if adj_rb not in ADJ_RB:
+                        error('{}: unknown Adj_rB suffix `{}`', lineno, adj_rb)
+                    m = re.match(r'(r\d+),\[(r\d+)\+(\d+),(\d+)\]', rest.replace(' ', ''))
+                    if not m:
+                        error('{}: {} invalid operands', lineno, inst)
+                    ops = [m.group(1), m.group(2), m.group(4), m.group(3)]
+                    break
+            else:
+                ops = [i.strip() for i in rest.split(',')]
             if inst not in table:
                 error('Unknown instruction `{}`'.format(inst))
 
@@ -97,25 +100,31 @@ def assemble(fin, fout):
             x = n = 0
             # most instructions
 
+            nth = 0
             for l, i in entry:
-                if i in ('imm', 'Location', 'Memory_Flags'):
+                if i in ('imm', 'Location', 'mem_off', 'Memory_Flags', 'Reg_Count'):
+                    nth += 1
                     if not ops:
-                        error('{}: instruction `{}`: missing operand(s)', lineno, inst, len(entry))
+                        error('{}: instruction `{}`: missing operand {}', lineno, inst, nth)
                     try:
                         x = x << l | int(ops.pop(0), 0)
                     except ValueError:
                         error('{}: invalid immediate number', lineno)
+                elif i == 'Adj_rB':
+                    x = x << l | ADJ_RB[adj_rb]
                 elif i == 'Condition':
                     x = x << l | CONDITION[cc]
                 elif i == 'r':
+                    nth += 1
                     if not ops:
-                        error('{}: instruction `{}`: missing operand(s)', lineno, inst, len(entry))
+                        error('{}: instruction `{}`: missing operand {}', lineno, inst, nth)
                     t = ops.pop(0)
                     m = re.match(r'r(\d+)$', t, re.I)
                     if not m:
                         error('{}: register operand', lineno)
                     x = x << l | int(m.group(1))
                 elif i == 'Offset':
+                    nth += 1
                     # TODO(label)
                     x = x << l | int(ops.pop(0))
                 elif i == 'UF':
@@ -123,6 +132,8 @@ def assemble(fin, fout):
                     uf = False
                 elif isinstance(i, int):
                     x = x << l | i
+                else:
+                    error('{}: unknown recognized `{}`', lineno, i)
                 n += l
             while n >= 8:
                 buf.append(x >> n-8)
