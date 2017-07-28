@@ -35,9 +35,12 @@ FL_CS = 0x000000200  # Condition flag is set
 FL_NCS = 0x000000400  # Condition flag is not set
 FL_INDIRECT = 0x000000800  # This is an indirect access (not immediate value)
 FL_SIGNED = 0x000001000  # This is a signed operand
+FL_MULTIREG = 0x000002000 # This is a multi reg operand
 
 FL_ABSOLUTE = 1  # absolute: &addr
 FL_SYMBOLIC = 2  # symbolic: addr
+
+o_regset = o_idpspec1
 
 PR_TINFO = 0x20000000  # not present in python??
 
@@ -1206,39 +1209,39 @@ class openrisc_processor_t(processor_t):
             opcode_size = 3
         elif opcode[0:7].uint == 0x54 and opcode[51:54].uint == 0x0:
             cmd.itype = self.inames["lds"]
-            cmd[0].type = o_reg
+            cmd[0].type = o_regset
             cmd[0].reg = opcode[7:12].uint
+            cmd[0].value = opcode[17:22].uint
             cmd[0].dtyp = dt_dword
-            cmd[1].type = o_reg
+            cmd[1].type = o_displ
+            cmd[1].specval |= FL_INDIRECT
             cmd[1].reg = opcode[12:17].uint
+            cmd[1].addr = SIGNEXT(opcode[24:51].uint, 27)
             cmd[1].dtyp = dt_dword
-            # TODO
-            # TODO
-            # TODO
             opcode_size = 6
         elif opcode[0:7].uint == 0x56 and opcode[51:54].uint == 0x0:
             cmd.itype = self.inames["ldt"]
-            cmd[0].type = o_reg
+            cmd[0].type = o_regset
             cmd[0].reg = opcode[7:12].uint
+            cmd[0].value = opcode[17:22].uint
             cmd[0].dtyp = dt_dword
-            cmd[1].type = o_reg
+            cmd[1].type = o_displ
+            cmd[1].specval |= FL_INDIRECT
             cmd[1].reg = opcode[12:17].uint
+            cmd[1].addr = SIGNEXT(opcode[24:51].uint,27)
             cmd[1].dtyp = dt_dword
-            # TODO
-            # TODO
-            # TODO
             opcode_size = 6
         elif opcode[0:7].uint == 0x55 and opcode[51:54].uint == 0x0:
             cmd.itype = self.inames["ldw"]
-            cmd[0].type = o_reg
+            cmd[0].type = o_regset
             cmd[0].reg = opcode[7:12].uint
+            cmd[0].value = opcode[17:22].uint
             cmd[0].dtyp = dt_dword
-            cmd[1].type = o_reg
+            cmd[1].type = o_displ
+            cmd[1].specval |= FL_INDIRECT
             cmd[1].reg = opcode[12:17].uint
+            cmd[1].addr = SIGNEXT(opcode[24:51].uint, 27)
             cmd[1].dtyp = dt_dword
-            # TODO
-            # TODO
-            # TODO
             opcode_size = 6
         elif opcode[0:7].uint == 0x10 and opcode[22:26].uint == 0x0:
             cmd.itype = self.inames["md"]
@@ -2023,39 +2026,39 @@ class openrisc_processor_t(processor_t):
             opcode_size = 3
         elif opcode[0:7].uint == 0x58 and opcode[51:54].uint == 0x0:
             cmd.itype = self.inames["sts"]
-            cmd[0].type = o_reg
+            cmd[0].type = o_regset
             cmd[0].reg = opcode[7:12].uint
+            cmd[0].value = opcode[17:22].uint
             cmd[0].dtyp = dt_dword
-            cmd[1].type = o_reg
+            cmd[1].type = o_displ
+            cmd[1].specval |= FL_INDIRECT
             cmd[1].reg = opcode[12:17].uint
+            cmd[1].addr = SIGNEXT(opcode[24:51].uint, 27)
             cmd[1].dtyp = dt_dword
-            # TODO
-            # TODO
-            # TODO
             opcode_size = 6
         elif opcode[0:7].uint == 0x5a and opcode[51:54].uint == 0x0:
             cmd.itype = self.inames["stt"]
-            cmd[0].type = o_reg
+            cmd[0].type = o_regset
             cmd[0].reg = opcode[7:12].uint
+            cmd[0].value = opcode[17:22].uint
             cmd[0].dtyp = dt_dword
-            cmd[1].type = o_reg
+            cmd[1].type = o_displ
+            cmd[1].specval |= FL_INDIRECT
             cmd[1].reg = opcode[12:17].uint
+            cmd[1].addr = SIGNEXT(opcode[24:51].uint, 27)
             cmd[1].dtyp = dt_dword
-            # TODO
-            # TODO
-            # TODO
             opcode_size = 6
         elif opcode[0:7].uint == 0x59 and opcode[51:54].uint == 0x0:
             cmd.itype = self.inames["stw"]
-            cmd[0].type = o_reg
+            cmd[0].type = o_regset
             cmd[0].reg = opcode[7:12].uint
+            cmd[0].value = opcode[17:22].uint
             cmd[0].dtyp = dt_dword
-            cmd[1].type = o_reg
+            cmd[1].type = o_displ
+            cmd[1].specval |= FL_INDIRECT
             cmd[1].reg = opcode[12:17].uint
+            cmd[1].addr = SIGNEXT(opcode[24:51].uint, 27)
             cmd[1].dtyp = dt_dword
-            # TODO
-            # TODO
-            # TODO
             opcode_size = 6
         elif opcode[0:18].uint == 0x28080:
             cmd.itype = self.inames["wt"]
@@ -2116,6 +2119,9 @@ class openrisc_processor_t(processor_t):
             opcode_size = 3
         else:
             raise DecodingError()
+        if "Multi Reg" in self.instrs[cmd.itype].cmt:
+            cmd[0].specval |= FL_MULTIREG
+            cmd[1].specval |= FL_MULTIREG
         self.cmd.size = opcode_size
         return opcode_size
 
@@ -2341,7 +2347,11 @@ class openrisc_processor_t(processor_t):
                 out_tagoff(COLOR_ERROR)
                 QueueSet(Q_noName, self.cmd.ea)
                 # OutLong(op.addr, 16)
-
+        elif optype == o_regset:
+            out_register(self.regNames[op.reg])
+            if op.value > 0:
+                out_symbol('-')
+                out_register(self.regNames[op.reg+op.value])
         elif optype == o_displ:
             if fl & FL_INDIRECT:
                 out_symbol('[')
