@@ -193,11 +193,11 @@ def assemble(fin, output, format):
         error('Unknown labels {}', ' '.join(reloc.keys()))
 
     # middle endian
-    #addr = 0
-    #for i in code_ends:
-    #    for j in range(addr, i-1, 3):
-    #        code[j], code[j+1] = code[j+1], code[j]
-    #    addr = i
+    addr = 0
+    for i in code_ends:
+        for j in range(addr, i-1, 3):
+            code[j], code[j+1] = code[j+1], code[j]
+        addr = i
 
     if format == '9bit':
         fout = sys.stdout if output == '-' else open(output, 'w')
