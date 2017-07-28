@@ -2227,11 +2227,12 @@ class openrisc_processor_t(processor_t):
     #这里是简单的化简 供参考用
     def simplify(self):
         if self.cmd.itype == self.inames['ml'] or self.cmd.itype == self.inames['ms']:
-            print "ml/md at: %08X on reg %s value %Xh\n" % (self.cmd.ea, self.regNames[self.cmd[0].reg], self.cmd[1].value)
+            #print "ml/md at: %08X on reg %s value %Xh\n" % (self.cmd.ea, self.regNames[self.cmd[0].reg], self.cmd[1].value)
             self.remove_ml_array_object(self.cmd[0].reg)
             self.last_ml_array.append({"reg": self.cmd[0].reg, "value": self.cmd[1].value})
+            return
         if self.cmd.itype == self.inames['mh']:
-            print "mh at: %08X on reg %s value %Xh\n" % (self.cmd.ea, self.regNames[self.cmd[0].reg], self.cmd[1].value)
+            #print "mh at: %08X on reg %s value %Xh\n" % (self.cmd.ea, self.regNames[self.cmd[0].reg], self.cmd[1].value)
             self.last_mh_array.append({"reg": self.cmd[0].reg, "value": self.cmd[1].value})
         if self.cmd.itype == self.inames['lds'] or self.cmd.itype == self.inames['ldt'] \
                 or self.cmd.itype == self.inames['ldw'] or self.cmd.itype == self.inames['sts'] \
@@ -2251,12 +2252,13 @@ class openrisc_processor_t(processor_t):
                 if (isLoaded(target_offset)):
                     ua_add_dref(0, target_offset, dr_R)
                 self.add_auto_resolved_constant_comment(target_offset)
-        elif self.cmd[1].reg != None:
+        else:
             cmd = self.cmd
             ft = cmd.get_canon_feature()
             if ft & CF_CHG1:
                 last_record_ml = self.remove_ml_array_object(self.cmd[0].reg)
                 self.remove_mh_array_object(self.cmd[0].reg)
+                print last_record_ml
                 if last_record_ml != None:
                     # print "trying to match addi or jalr for lui, cur ea: %08X" % (self.cmd.ea)
                     if self.cmd.itype == self.inames['mh']:
@@ -2264,6 +2266,7 @@ class openrisc_processor_t(processor_t):
                         if (isLoaded(target_offset)):
                             ua_add_dref(0, target_offset, dr_R)
                         self.add_auto_resolved_constant_comment(target_offset)
+
     #这个函数不用动哒
     def add_stkpnt(self, pfn, v):
         if pfn:
