@@ -124,7 +124,7 @@ def assemble(fin, output, format):
 
             nth = x = n = 0
             for l, i in entry:
-                if i in ('imm', 'mem_off', 'Memory_Flags', 'Reg_Count'):
+                if i in ('imm', 'mem_off', 'Reg_Count'):
                     nth += 1
                     if not ops:
                         error('{}: instruction `{}`: missing operand {}', lineno, inst, nth)
@@ -136,6 +136,22 @@ def assemble(fin, output, format):
                     x = x << l | ADJ_RB[adj_rb]
                 elif i == 'Condition':
                     x = x << l | CONDITION[cc]
+                elif i == 'Memory_Flags':
+                    nth += 1
+                    t = ops.pop(0)
+                    try:
+                        t = int(t, 0)
+                    except ValueError:
+                        t = t.upper()
+                        if t == '':
+                            t = 0
+                        elif t == 'R':
+                            t = 1
+                        elif t == 'RW':
+                            t = 2
+                        elif t == 'RE':  # TODO check
+                            t = 3
+                    x = x << l | t
                 elif i == 'r':
                     nth += 1
                     if not ops:
