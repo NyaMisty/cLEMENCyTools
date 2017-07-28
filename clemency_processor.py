@@ -2635,7 +2635,7 @@ class openrisc_processor_t(processor_t):
             out_register(self.regNames[op.reg])
             if op.value > 0:
                 out_symbol('-')
-                out_register(self.regNames[op.reg + op.value])
+                out_register(self.regNames[op.reg + op.value + 1])
         elif optype == o_memflags:
             if op.value == 0:
                 out_keyword("N/A")
