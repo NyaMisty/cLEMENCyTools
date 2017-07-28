@@ -1,9 +1,5 @@
 # coding=utf-8
 
-import pydevd
-
-pydevd.settrace('localhost', port=15306, stdoutToServer=True, stderrToServer=True, suspend=False,
-                overwrite_prev_trace=True, patch_multiprocessing=True)
 
 from idaapi import *
 from idc import *
@@ -2549,8 +2545,8 @@ class openrisc_processor_t(processor_t):
                     # print "trying to match addi or jalr for lui, cur ea: %08X" % (self.cmd.ea)
                     if self.cmd.itype == self.inames['mh']:
                         target_offset = toInt((last_record_ml["value"]) + (self.cmd[1].value << 10))
-                        if (isLoaded(target_offset)):
-                            ua_add_dref(0, target_offset, dr_R)
+                        #if (isLoaded(target_offset)):
+                        ua_add_dref(0, target_offset, dr_R)
                         self.add_auto_resolved_constant_comment(target_offset)
 
 

@@ -51,12 +51,53 @@ def load_file(li, neflags, format):
         # program too large
         return 0
 
+    idaapi.mem2base( data, 0, len(data) )
     seg = idaapi.segment_t()
     seg.startEA = 0
-    seg.endEA = 0x3FFFFFF
+    seg.endEA = 0x4000000
     # seg.bitness = 1
     idaapi.add_segm_ex( seg, "PROGRAM", "RAM", idaapi.ADDSEG_SPARSE )
-    idaapi.mem2base( data, 0, len(data) )
+    seg = idaapi.segment_t()
+    seg.startEA = 0x4000000
+    seg.endEA = 0x400001e
+    idaapi.add_segm_ex( seg, "CLOCKIO", "RAM", idaapi.ADDSEG_SPARSE )
+    seg = idaapi.segment_t()
+    seg.startEA = 0x4010000
+    seg.endEA = 0x4011000
+    idaapi.add_segm_ex( seg, "FLAGIO", "RAM", idaapi.ADDSEG_SPARSE )
+    seg = idaapi.segment_t()
+    seg.startEA = 0x5000000
+    seg.endEA = 0x5002000
+    idaapi.add_segm_ex( seg, "RDATA", "RAM", idaapi.ADDSEG_SPARSE )
+    seg = idaapi.segment_t()
+    seg.startEA = 0x5002000
+    seg.endEA = 0x5002003
+    idaapi.add_segm_ex( seg, "RDATASZ", "RAM", idaapi.ADDSEG_SPARSE )
+    seg = idaapi.segment_t()
+    seg.startEA = 0x5010000
+    seg.endEA = 0x5012000
+    idaapi.add_segm_ex( seg, "SDATA", "RAM", idaapi.ADDSEG_SPARSE )
+    seg = idaapi.segment_t()
+    seg.startEA = 0x5012000
+    seg.endEA = 0x5012003
+    idaapi.add_segm_ex( seg, "SDATASZ", "RAM", idaapi.ADDSEG_SPARSE )
+    seg = idaapi.segment_t()
+    seg.startEA = 0x6000000
+    seg.endEA = 0x6800000
+    idaapi.add_segm_ex( seg, "SHMEM", "RAM", idaapi.ADDSEG_SPARSE )
+    seg = idaapi.segment_t()
+    seg.startEA = 0x6800000
+    seg.endEA = 0x7000000
+    idaapi.add_segm_ex( seg, "NVRAM", "RAM", idaapi.ADDSEG_SPARSE )
+    seg = idaapi.segment_t()
+    seg.startEA = 0x7FFFF00
+    seg.endEA = 0x7FFFF1C
+    idaapi.add_segm_ex( seg, "IVEC", "RAM", idaapi.ADDSEG_SPARSE )
+    seg = idaapi.segment_t()
+    seg.startEA = 0x7FFFF80
+    seg.endEA = 0x8000000
+    idaapi.add_segm_ex( seg, "PROCID", "RAM", idaapi.ADDSEG_SPARSE )
+    idaapi.add_entry(0, 0, "_start", True)
     # idc.AutoMark( 0, AU_CODE )
 
     return 1
