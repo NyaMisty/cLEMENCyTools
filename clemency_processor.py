@@ -1,7 +1,7 @@
 # coding=utf-8
 
-#import pydevd
-#pydevd.settrace('localhost', port=15306, stdoutToServer=True, stderrToServer=True,suspend=False,overwrite_prev_trace=True,patch_multiprocessing=True)
+import pydevd
+pydevd.settrace('localhost', port=15306, stdoutToServer=True, stderrToServer=True,suspend=False,overwrite_prev_trace=True,patch_multiprocessing=True)
 
 from idaapi import *
 from idc import *
@@ -138,6 +138,7 @@ class openrisc_processor_t(processor_t):
         "R10", "R11", "R12", "R13", "R14",
         "R15", "R16", "R17", "R18", "R19",
         "R20", "R21", "R22", "R23", "R24",
+        "R25", "R26", "R27", "R28", "R29",
         "CS", "DS"
     ]
 
@@ -376,17 +377,33 @@ class openrisc_processor_t(processor_t):
         dword = get_full_byte(ea)
         self.cmd.size += 1
         return dword
+    def convertMiddleEndian(self,bits):
+        temp1 = bits[0:9]
+        temp2 = bits[9:18]
+        temp3 = bits[18:27]
+        return temp2+temp1+temp3
     def _ana(self):
         cmd = self.cmd
-        opcode = bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
-        opcode += bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
-        opcode += bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
-        opcode += bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
-        opcode += bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
-        opcode += bitstring.BitArray(self._read_cmd_byte() & 0x7ffffff)
-
+        opcode = bitstring.BitArray()
+        temp = bitstring.BitArray(length=9)
+        temp.uint = (self._read_cmd_byte() & 0x1ff)
+        opcode += temp
+        temp.uint = (self._read_cmd_byte() & 0x1ff)
+        opcode += temp
+        temp.uint = (self._read_cmd_byte() & 0x1ff)
+        opcode += temp
+        opcode = self.convertMiddleEndian(opcode)
+        opcode = bitstring.BitArray()
+        temp.uint = (self._read_cmd_byte() & 0x1ff)
+        opcode += temp
+        temp.uint = (self._read_cmd_byte() & 0x1ff)
+        opcode += temp
+        temp.uint = (self._read_cmd_byte() & 0x1ff)
+        opcode += temp
+        opcode += self.convertMiddleEndian(opcode)
+        print opcode
         if opcode[0:7].uint == 0x0 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["AD"]
+            cmd.itype = self.inames["ad"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -398,7 +415,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x20 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["ADC"]
+            cmd.itype = self.inames["adc"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -410,7 +427,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x20 and opcode[24:26].uint == 0x1:
-            cmd.itype = self.inames["ADCI"]
+            cmd.itype = self.inames["adci"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -422,7 +439,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x22 and opcode[24:26].uint == 0x1:
-            cmd.itype = self.inames["ADCIM"]
+            cmd.itype = self.inames["adcim"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -434,7 +451,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x22 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["ADCM"]
+            cmd.itype = self.inames["adcm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -446,7 +463,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x1 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["ADF"]
+            cmd.itype = self.inames["adf"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -458,7 +475,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x3 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["ADFM"]
+            cmd.itype = self.inames["adfm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -470,7 +487,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x0 and opcode[24:26].uint == 0x1:
-            cmd.itype = self.inames["ADI"]
+            cmd.itype = self.inames["adi"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -482,7 +499,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x2 and opcode[24:26].uint == 0x1:
-            cmd.itype = self.inames["ADIM"]
+            cmd.itype = self.inames["adim"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -494,7 +511,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x2 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["ADM"]
+            cmd.itype = self.inames["adm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -506,7 +523,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x14 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["AN"]
+            cmd.itype = self.inames["an"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -518,7 +535,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x14 and opcode[24:26].uint == 0x1:
-            cmd.itype = self.inames["ANI"]
+            cmd.itype = self.inames["ani"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -530,7 +547,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x16 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["ANM"]
+            cmd.itype = self.inames["anm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -542,12 +559,12 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:6].uint == 0x30:
-            cmd.itype = self.inames["B"]
+            cmd.itype = self.inames["b"]
             # TODO
             # TODO
             opcode_size = 3
         elif opcode[0:9].uint == 0x14c and opcode[19:26].uint == 0x40:
-            cmd.itype = self.inames["BF"]
+            cmd.itype = self.inames["bf"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[9:14].uint
             cmd[0].dtyp = dt_dword
@@ -556,7 +573,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:9].uint == 0x14e and opcode[19:26].uint == 0x40:
-            cmd.itype = self.inames["BFM"]
+            cmd.itype = self.inames["bfm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[9:14].uint
             cmd[0].dtyp = dt_dword
@@ -565,35 +582,35 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:6].uint == 0x32 and opcode[15:18].uint == 0x0:
-            cmd.itype = self.inames["BR"]
+            cmd.itype = self.inames["br"]
             # TODO
             cmd[1].type = o_reg
             cmd[1].reg = opcode[10:15].uint
             cmd[1].dtyp = dt_dword
             opcode_size = 2
         elif opcode[0:9].uint == 0x1c4:
-            cmd.itype = self.inames["BRA"]
+            cmd.itype = self.inames["bra"]
             # TODO
             opcode_size = 4
         elif opcode[0:9].uint == 0x1c0:
-            cmd.itype = self.inames["BRR"]
+            cmd.itype = self.inames["brr"]
             # TODO
             opcode_size = 4
         elif opcode[0:6].uint == 0x35:
-            cmd.itype = self.inames["C"]
+            cmd.itype = self.inames["c"]
             # TODO
             # TODO
             opcode_size = 3
         elif opcode[0:9].uint == 0x1cc:
-            cmd.itype = self.inames["CAA"]
+            cmd.itype = self.inames["caa"]
             # TODO
             opcode_size = 4
         elif opcode[0:9].uint == 0x1c8:
-            cmd.itype = self.inames["CAR"]
+            cmd.itype = self.inames["car"]
             # TODO
             opcode_size = 4
         elif opcode[0:8].uint == 0xb8:
-            cmd.itype = self.inames["CM"]
+            cmd.itype = self.inames["cm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[8:13].uint
             cmd[0].dtyp = dt_dword
@@ -602,7 +619,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 2
         elif opcode[0:8].uint == 0xba:
-            cmd.itype = self.inames["CMF"]
+            cmd.itype = self.inames["cmf"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[8:13].uint
             cmd[0].dtyp = dt_dword
@@ -611,7 +628,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 2
         elif opcode[0:8].uint == 0xbe:
-            cmd.itype = self.inames["CMFM"]
+            cmd.itype = self.inames["cmfm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[8:13].uint
             cmd[0].dtyp = dt_dword
@@ -620,7 +637,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 2
         elif opcode[0:8].uint == 0xb9:
-            cmd.itype = self.inames["CMI"]
+            cmd.itype = self.inames["cmi"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[8:13].uint
             cmd[0].dtyp = dt_dword
@@ -629,7 +646,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:8].uint == 0xbd:
-            cmd.itype = self.inames["CMIM"]
+            cmd.itype = self.inames["cmim"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[8:13].uint
             cmd[0].dtyp = dt_dword
@@ -638,7 +655,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:8].uint == 0xbc:
-            cmd.itype = self.inames["CMM"]
+            cmd.itype = self.inames["cmm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[8:13].uint
             cmd[0].dtyp = dt_dword
@@ -647,23 +664,23 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 2
         elif opcode[0:6].uint == 0x37 and opcode[15:18].uint == 0x0:
-            cmd.itype = self.inames["CR"]
+            cmd.itype = self.inames["cr"]
             # TODO
             cmd[1].type = o_reg
             cmd[1].reg = opcode[10:15].uint
             cmd[1].dtyp = dt_dword
             opcode_size = 2
         elif opcode[0:18].uint == 0x3ffff:
-            cmd.itype = self.inames["DBRK"]
+            cmd.itype = self.inames["dbrk"]
             opcode_size = 2
         elif opcode[0:12].uint == 0xa05 and opcode[17:18].uint == 0x0:
-            cmd.itype = self.inames["DI"]
+            cmd.itype = self.inames["di"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[12:17].uint
             cmd[0].dtyp = dt_dword
             opcode_size = 2
         elif opcode[0:7].uint == 0x34 and opcode[22:27].uint == 0x0:
-            cmd.itype = self.inames["DMT"]
+            cmd.itype = self.inames["dmt"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -675,7 +692,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0xc and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["DV"]
+            cmd.itype = self.inames["dv"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -687,7 +704,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0xd and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["DVF"]
+            cmd.itype = self.inames["dvf"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -699,7 +716,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0xf and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["DVFM"]
+            cmd.itype = self.inames["dvfm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -711,7 +728,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0xc and opcode[24:26].uint == 0x1:
-            cmd.itype = self.inames["DVI"]
+            cmd.itype = self.inames["dvi"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -723,7 +740,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0xe and opcode[24:26].uint == 0x1:
-            cmd.itype = self.inames["DVIM"]
+            cmd.itype = self.inames["dvim"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -735,7 +752,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0xc and opcode[24:26].uint == 0x3:
-            cmd.itype = self.inames["DVIS"]
+            cmd.itype = self.inames["dvis"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -747,7 +764,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0xe and opcode[24:26].uint == 0x3:
-            cmd.itype = self.inames["DVISM"]
+            cmd.itype = self.inames["dvism"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -759,7 +776,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0xe and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["DVM"]
+            cmd.itype = self.inames["dvm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -771,7 +788,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0xc and opcode[22:26].uint == 0x2:
-            cmd.itype = self.inames["DVS"]
+            cmd.itype = self.inames["dvs"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -783,7 +800,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0xe and opcode[22:26].uint == 0x2:
-            cmd.itype = self.inames["DVSM"]
+            cmd.itype = self.inames["dvsm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -795,13 +812,13 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:12].uint == 0xa04 and opcode[17:18].uint == 0x0:
-            cmd.itype = self.inames["EI"]
+            cmd.itype = self.inames["ei"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[12:17].uint
             cmd[0].dtyp = dt_dword
             opcode_size = 2
         elif opcode[0:9].uint == 0x145 and opcode[19:27].uint == 0x0:
-            cmd.itype = self.inames["FTI"]
+            cmd.itype = self.inames["fti"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[9:14].uint
             cmd[0].dtyp = dt_dword
@@ -810,7 +827,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:9].uint == 0x147 and opcode[19:27].uint == 0x0:
-            cmd.itype = self.inames["FTIM"]
+            cmd.itype = self.inames["ftim"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[9:14].uint
             cmd[0].dtyp = dt_dword
@@ -819,13 +836,13 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:18].uint == 0x280c0:
-            cmd.itype = self.inames["HT"]
+            cmd.itype = self.inames["ht"]
             opcode_size = 2
         elif opcode[0:18].uint == 0x28040:
-            cmd.itype = self.inames["IR"]
+            cmd.itype = self.inames["ir"]
             opcode_size = 2
         elif opcode[0:9].uint == 0x144 and opcode[19:27].uint == 0x0:
-            cmd.itype = self.inames["ITF"]
+            cmd.itype = self.inames["itf"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[9:14].uint
             cmd[0].dtyp = dt_dword
@@ -834,7 +851,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:9].uint == 0x146 and opcode[19:27].uint == 0x0:
-            cmd.itype = self.inames["ITFM"]
+            cmd.itype = self.inames["itfm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[9:14].uint
             cmd[0].dtyp = dt_dword
@@ -843,7 +860,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x54 and opcode[51:54].uint == 0x0:
-            cmd.itype = self.inames["LDS"]
+            cmd.itype = self.inames["lds"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -855,7 +872,7 @@ class openrisc_processor_t(processor_t):
             # TODO
             opcode_size = 6
         elif opcode[0:7].uint == 0x56 and opcode[51:54].uint == 0x0:
-            cmd.itype = self.inames["LDT"]
+            cmd.itype = self.inames["ldt"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -867,7 +884,7 @@ class openrisc_processor_t(processor_t):
             # TODO
             opcode_size = 6
         elif opcode[0:7].uint == 0x55 and opcode[51:54].uint == 0x0:
-            cmd.itype = self.inames["LDW"]
+            cmd.itype = self.inames["ldw"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -879,7 +896,7 @@ class openrisc_processor_t(processor_t):
             # TODO
             opcode_size = 6
         elif opcode[0:7].uint == 0x10 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["MD"]
+            cmd.itype = self.inames["md"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -891,7 +908,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x11 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["MDF"]
+            cmd.itype = self.inames["mdf"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -903,7 +920,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x13 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["MDFM"]
+            cmd.itype = self.inames["mdfm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -915,7 +932,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x10 and opcode[24:26].uint == 0x1:
-            cmd.itype = self.inames["MDI"]
+            cmd.itype = self.inames["mdi"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -927,7 +944,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x12 and opcode[24:26].uint == 0x1:
-            cmd.itype = self.inames["MDIM"]
+            cmd.itype = self.inames["mdim"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -939,7 +956,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x10 and opcode[24:26].uint == 0x3:
-            cmd.itype = self.inames["MDIS"]
+            cmd.itype = self.inames["mdis"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -951,7 +968,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x12 and opcode[24:26].uint == 0x3:
-            cmd.itype = self.inames["MDISM"]
+            cmd.itype = self.inames["mdism"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -963,7 +980,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x12 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["MDM"]
+            cmd.itype = self.inames["mdm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -975,7 +992,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x10 and opcode[22:26].uint == 0x2:
-            cmd.itype = self.inames["MDS"]
+            cmd.itype = self.inames["mds"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -987,7 +1004,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x12 and opcode[22:26].uint == 0x2:
-            cmd.itype = self.inames["MDSM"]
+            cmd.itype = self.inames["mdsm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -999,7 +1016,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:5].uint == 0x11:
-            cmd.itype = self.inames["MH"]
+            cmd.itype = self.inames["mh"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[5:10].uint
             cmd[0].dtyp = dt_dword
@@ -1008,7 +1025,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:5].uint == 0x12:
-            cmd.itype = self.inames["ML"]
+            cmd.itype = self.inames["ml"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[5:10].uint
             cmd[0].dtyp = dt_dword
@@ -1017,7 +1034,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:5].uint == 0x13:
-            cmd.itype = self.inames["MS"]
+            cmd.itype = self.inames["ms"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[5:10].uint
             cmd[0].dtyp = dt_dword
@@ -1026,7 +1043,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x8 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["MU"]
+            cmd.itype = self.inames["mu"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1038,7 +1055,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x9 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["MUF"]
+            cmd.itype = self.inames["muf"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1050,7 +1067,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0xb and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["MUFM"]
+            cmd.itype = self.inames["mufm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1062,7 +1079,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x8 and opcode[24:26].uint == 0x1:
-            cmd.itype = self.inames["MUI"]
+            cmd.itype = self.inames["mui"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1074,7 +1091,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0xa and opcode[24:26].uint == 0x1:
-            cmd.itype = self.inames["MUIM"]
+            cmd.itype = self.inames["muim"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1086,7 +1103,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x8 and opcode[24:26].uint == 0x3:
-            cmd.itype = self.inames["MUIS"]
+            cmd.itype = self.inames["muis"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1098,7 +1115,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0xa and opcode[24:26].uint == 0x3:
-            cmd.itype = self.inames["MUISM"]
+            cmd.itype = self.inames["muism"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1110,7 +1127,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0xa and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["MUM"]
+            cmd.itype = self.inames["mum"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1122,7 +1139,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x8 and opcode[22:26].uint == 0x2:
-            cmd.itype = self.inames["MUS"]
+            cmd.itype = self.inames["mus"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1134,7 +1151,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0xa and opcode[22:26].uint == 0x2:
-            cmd.itype = self.inames["MUSM"]
+            cmd.itype = self.inames["musm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1146,7 +1163,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:9].uint == 0x14c and opcode[19:26].uint == 0x0:
-            cmd.itype = self.inames["NG"]
+            cmd.itype = self.inames["ng"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[9:14].uint
             cmd[0].dtyp = dt_dword
@@ -1155,7 +1172,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:9].uint == 0x14d and opcode[19:26].uint == 0x0:
-            cmd.itype = self.inames["NGF"]
+            cmd.itype = self.inames["ngf"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[9:14].uint
             cmd[0].dtyp = dt_dword
@@ -1164,7 +1181,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:9].uint == 0x14f and opcode[19:26].uint == 0x0:
-            cmd.itype = self.inames["NGFM"]
+            cmd.itype = self.inames["ngfm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[9:14].uint
             cmd[0].dtyp = dt_dword
@@ -1173,7 +1190,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:9].uint == 0x14e and opcode[19:26].uint == 0x0:
-            cmd.itype = self.inames["NGM"]
+            cmd.itype = self.inames["ngm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[9:14].uint
             cmd[0].dtyp = dt_dword
@@ -1182,7 +1199,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:9].uint == 0x14c and opcode[19:26].uint == 0x20:
-            cmd.itype = self.inames["NT"]
+            cmd.itype = self.inames["nt"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[9:14].uint
             cmd[0].dtyp = dt_dword
@@ -1191,7 +1208,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:9].uint == 0x14e and opcode[19:26].uint == 0x20:
-            cmd.itype = self.inames["NTM"]
+            cmd.itype = self.inames["ntm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[9:14].uint
             cmd[0].dtyp = dt_dword
@@ -1200,7 +1217,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x18 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["OR"]
+            cmd.itype = self.inames["or"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1212,7 +1229,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x18 and opcode[24:26].uint == 0x1:
-            cmd.itype = self.inames["ORI"]
+            cmd.itype = self.inames["ori"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1224,7 +1241,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x1a and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["ORM"]
+            cmd.itype = self.inames["orm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1236,16 +1253,16 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:18].uint == 0x28000:
-            cmd.itype = self.inames["RE"]
+            cmd.itype = self.inames["re"]
             opcode_size = 2
         elif opcode[0:12].uint == 0xa0c and opcode[17:18].uint == 0x0:
-            cmd.itype = self.inames["RF"]
+            cmd.itype = self.inames["rf"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[12:17].uint
             cmd[0].dtyp = dt_dword
             opcode_size = 2
         elif opcode[0:7].uint == 0x30 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["RL"]
+            cmd.itype = self.inames["rl"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1257,7 +1274,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x40 and opcode[24:26].uint == 0x0:
-            cmd.itype = self.inames["RLI"]
+            cmd.itype = self.inames["rli"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1269,7 +1286,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x42 and opcode[24:26].uint == 0x0:
-            cmd.itype = self.inames["RLIM"]
+            cmd.itype = self.inames["rlim"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1281,7 +1298,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x32 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["RLM"]
+            cmd.itype = self.inames["rlm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1293,7 +1310,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x52 and opcode[17:27].uint == 0x0:
-            cmd.itype = self.inames["RMP"]
+            cmd.itype = self.inames["rmp"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1302,19 +1319,19 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:9].uint == 0x14c and opcode[14:26].uint == 0x60:
-            cmd.itype = self.inames["RND"]
+            cmd.itype = self.inames["rnd"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[9:14].uint
             cmd[0].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:9].uint == 0x14e and opcode[14:26].uint == 0x60:
-            cmd.itype = self.inames["RNDM"]
+            cmd.itype = self.inames["rndm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[9:14].uint
             cmd[0].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x31 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["RR"]
+            cmd.itype = self.inames["rr"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1326,7 +1343,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x41 and opcode[24:26].uint == 0x0:
-            cmd.itype = self.inames["RRI"]
+            cmd.itype = self.inames["rri"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1338,7 +1355,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x43 and opcode[24:26].uint == 0x0:
-            cmd.itype = self.inames["RRIM"]
+            cmd.itype = self.inames["rrim"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1350,7 +1367,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x33 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["RRM"]
+            cmd.itype = self.inames["rrm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1362,7 +1379,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x2d and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["SA"]
+            cmd.itype = self.inames["sa"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1374,7 +1391,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x3d and opcode[24:26].uint == 0x0:
-            cmd.itype = self.inames["SAI"]
+            cmd.itype = self.inames["sai"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1386,7 +1403,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x3f and opcode[24:26].uint == 0x0:
-            cmd.itype = self.inames["SAIM"]
+            cmd.itype = self.inames["saim"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1398,7 +1415,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x2f and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["SAM"]
+            cmd.itype = self.inames["sam"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1410,7 +1427,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x4 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["SB"]
+            cmd.itype = self.inames["sb"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1422,7 +1439,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x24 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["SBC"]
+            cmd.itype = self.inames["sbc"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1434,7 +1451,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x24 and opcode[24:26].uint == 0x1:
-            cmd.itype = self.inames["SBCI"]
+            cmd.itype = self.inames["sbci"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1446,7 +1463,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x26 and opcode[24:26].uint == 0x1:
-            cmd.itype = self.inames["SBCIM"]
+            cmd.itype = self.inames["sbcim"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1458,7 +1475,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x26 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["SBCM"]
+            cmd.itype = self.inames["sbcm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1470,7 +1487,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x5 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["SBF"]
+            cmd.itype = self.inames["sbf"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1482,7 +1499,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x7 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["SBFM"]
+            cmd.itype = self.inames["sbfm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1494,7 +1511,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x4 and opcode[24:26].uint == 0x1:
-            cmd.itype = self.inames["SBI"]
+            cmd.itype = self.inames["sbi"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1506,7 +1523,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x6 and opcode[24:26].uint == 0x1:
-            cmd.itype = self.inames["SBIM"]
+            cmd.itype = self.inames["sbim"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1518,7 +1535,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x6 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["SBM"]
+            cmd.itype = self.inames["sbm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1530,7 +1547,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:12].uint == 0xa07 and opcode[22:27].uint == 0x0:
-            cmd.itype = self.inames["SES"]
+            cmd.itype = self.inames["ses"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[12:17].uint
             cmd[0].dtyp = dt_dword
@@ -1539,7 +1556,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:12].uint == 0xa08 and opcode[22:27].uint == 0x0:
-            cmd.itype = self.inames["SEW"]
+            cmd.itype = self.inames["sew"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[12:17].uint
             cmd[0].dtyp = dt_dword
@@ -1548,13 +1565,13 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:12].uint == 0xa0b and opcode[17:18].uint == 0x0:
-            cmd.itype = self.inames["SF"]
+            cmd.itype = self.inames["sf"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[12:17].uint
             cmd[0].dtyp = dt_dword
             opcode_size = 2
         elif opcode[0:7].uint == 0x28 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["SL"]
+            cmd.itype = self.inames["sl"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1566,7 +1583,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x38 and opcode[24:26].uint == 0x0:
-            cmd.itype = self.inames["SLI"]
+            cmd.itype = self.inames["sli"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1578,7 +1595,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x3a and opcode[24:26].uint == 0x0:
-            cmd.itype = self.inames["SLIM"]
+            cmd.itype = self.inames["slim"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1590,7 +1607,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x2a and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["SLM"]
+            cmd.itype = self.inames["slm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1602,7 +1619,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x52 and opcode[17:18].uint == 0x1 and opcode[19:21].uint == 0x0:
-            cmd.itype = self.inames["SMP"]
+            cmd.itype = self.inames["smp"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1612,7 +1629,7 @@ class openrisc_processor_t(processor_t):
             # TODO
             opcode_size = 3
         elif opcode[0:7].uint == 0x29 and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["SR"]
+            cmd.itype = self.inames["sr"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1624,7 +1641,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x39 and opcode[24:26].uint == 0x0:
-            cmd.itype = self.inames["SRI"]
+            cmd.itype = self.inames["sri"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1636,7 +1653,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x3b and opcode[24:26].uint == 0x0:
-            cmd.itype = self.inames["SRIM"]
+            cmd.itype = self.inames["srim"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1648,7 +1665,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x2b and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["SRM"]
+            cmd.itype = self.inames["srm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1660,7 +1677,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x58 and opcode[51:54].uint == 0x0:
-            cmd.itype = self.inames["STS"]
+            cmd.itype = self.inames["sts"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1672,7 +1689,7 @@ class openrisc_processor_t(processor_t):
             # TODO
             opcode_size = 6
         elif opcode[0:7].uint == 0x5a and opcode[51:54].uint == 0x0:
-            cmd.itype = self.inames["STT"]
+            cmd.itype = self.inames["stt"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1684,7 +1701,7 @@ class openrisc_processor_t(processor_t):
             # TODO
             opcode_size = 6
         elif opcode[0:7].uint == 0x59 and opcode[51:54].uint == 0x0:
-            cmd.itype = self.inames["STW"]
+            cmd.itype = self.inames["stw"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1696,10 +1713,10 @@ class openrisc_processor_t(processor_t):
             # TODO
             opcode_size = 6
         elif opcode[0:18].uint == 0x28080:
-            cmd.itype = self.inames["WT"]
+            cmd.itype = self.inames["wt"]
             opcode_size = 2
         elif opcode[0:7].uint == 0x1c and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["XR"]
+            cmd.itype = self.inames["xr"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1711,7 +1728,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x1c and opcode[24:26].uint == 0x1:
-            cmd.itype = self.inames["XRI"]
+            cmd.itype = self.inames["xri"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1723,7 +1740,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x1e and opcode[22:26].uint == 0x0:
-            cmd.itype = self.inames["XRM"]
+            cmd.itype = self.inames["xrm"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[7:12].uint
             cmd[0].dtyp = dt_dword
@@ -1735,7 +1752,7 @@ class openrisc_processor_t(processor_t):
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:12].uint == 0xa09 and opcode[22:27].uint == 0x0:
-            cmd.itype = self.inames["ZES"]
+            cmd.itype = self.inames["zes"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[12:17].uint
             cmd[0].dtyp = dt_dword
@@ -1744,7 +1761,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:12].uint == 0xa0a and opcode[22:27].uint == 0x0:
-            cmd.itype = self.inames["ZEW"]
+            cmd.itype = self.inames["zew"]
             cmd[0].type = o_reg
             cmd[0].reg = opcode[12:17].uint
             cmd[0].dtyp = dt_dword
@@ -1892,7 +1909,7 @@ class openrisc_processor_t(processor_t):
         flow = False
 
         # 首先对特殊指令做处理
-        if cmd.itype == self.inames['jal']:
+        """if cmd.itype == self.inames['jal']:
             # 无条件跳转 类似于x86 jmp
             if cmd[0].reg == 0:
                 flow = False
@@ -1931,7 +1948,7 @@ class openrisc_processor_t(processor_t):
                     print "Error while making function from cmd.ea:0x%X" % (cmd.ea)
             else:
                 flow = False
-        else:
+        else
             # 其他指令正常处理
             ft = cmd.get_canon_feature()
             if ft & CF_USE1:
@@ -1954,7 +1971,7 @@ class openrisc_processor_t(processor_t):
             if flow:
                 self.trace_sp()  # trace modification of SP register
             else:
-                recalc_spd(self.cmd.ea)  # recalculate SP register for the next insn
+                recalc_spd(self.cmd.ea)  # recalculate SP register for the next insn"""
         return True
 
     # 剩下的这两个函数全是基本固定的 等出问题再说
