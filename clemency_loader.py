@@ -32,6 +32,7 @@ def convert_bit(data):
     return str(ret)
 
 def load_file(li, neflags, format):
+    set_processor_type("cLEMENCy", SETPROC_ALL | SETPROC_FATAL)
     li.seek(0,SEEK_END)
     fileLen = li.tell()
     li.seek(0,SEEK_SET)
@@ -54,5 +55,6 @@ def load_file(li, neflags, format):
     file2base.restype = ctypes.c_int
     file2base(retlinput,0,0,int(fileLen * 8 / 9),FILEREG_PATCHABLE)
     add_segm(0, 0, int(fileLen * 8 / 9), "FIRMWARE", "CODE")
+    add_entry(0, 0, "_start", True)
     #close_linput(retlinput)
     return 1
