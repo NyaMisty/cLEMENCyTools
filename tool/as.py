@@ -164,7 +164,7 @@ def assemble(fin, output, format):
                         t = int(t, 0)
                     except ValueError:
                         if t in label2addr:
-                            t = label2addr[t]
+                            t = label2addr[t]-addr
                         else:
                             reloc[t].append((addr-opt_start, n, l, 'rel'))
                             t = -1
