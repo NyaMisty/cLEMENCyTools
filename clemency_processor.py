@@ -1108,7 +1108,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].reg = opcode[12:17].uint
             cmd[1].dtyp = dt_dword
             cmd[2].type = o_imm
-            cmd[2].value = opcode[17:24].uint
+            cmd[2].value = SIGNEXT(opcode[17:24].uint,7)
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0xe and opcode[24:26].uint == 0x3:
@@ -1120,7 +1120,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].reg = opcode[12:17].uint
             cmd[1].dtyp = dt_dword
             cmd[2].type = o_imm
-            cmd[2].value = opcode[17:24].uint
+            cmd[2].value = SIGNEXT(opcode[17:24].uint,7)
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0xe and opcode[22:26].uint == 0x0:
@@ -1144,7 +1144,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].reg = opcode[12:17].uint
             cmd[1].dtyp = dt_dword
             cmd[2].type = o_reg
-            cmd[2].reg = opcode[17:22].uint
+            cmd[2].reg = SIGNEXT(opcode[17:22].uint,7)
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0xe and opcode[22:26].uint == 0x2:
@@ -1156,7 +1156,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].reg = opcode[12:17].uint
             cmd[1].dtyp = dt_dword
             cmd[2].type = o_reg
-            cmd[2].reg = opcode[17:22].uint
+            cmd[2].reg = SIGNEXT(opcode[17:22].uint,5)
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:12].uint == 0xa04 and opcode[17:18].uint == 0x0:
@@ -1312,7 +1312,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].reg = opcode[12:17].uint
             cmd[1].dtyp = dt_dword
             cmd[2].type = o_imm
-            cmd[2].value = opcode[17:24].uint
+            cmd[2].value = SIGNEXT(opcode[17:24].uint,7)
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x12 and opcode[24:26].uint == 0x3:
@@ -1324,7 +1324,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].reg = opcode[12:17].uint
             cmd[1].dtyp = dt_dword
             cmd[2].type = o_imm
-            cmd[2].value = opcode[17:24].uint
+            cmd[2].value = SIGNEXT(opcode[17:24].uint,7)
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x12 and opcode[22:26].uint == 0x0:
@@ -1360,7 +1360,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].reg = opcode[12:17].uint
             cmd[1].dtyp = dt_dword
             cmd[2].type = o_reg
-            cmd[2].reg = opcode[17:22].uint
+            cmd[2].reg = SIGNEXT(opcode[17:22].uint,5)
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:5].uint == 0x11:
@@ -1387,7 +1387,7 @@ class openrisc_processor_t(processor_t):
             cmd[0].reg = opcode[5:10].uint
             cmd[0].dtyp = dt_dword
             cmd[1].type = o_imm
-            cmd[1].value = opcode[10:27].uint
+            cmd[1].value = SIGNEXT(opcode[10:27].uint,17)
             cmd[1].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0x8 and opcode[22:26].uint == 0x0:
@@ -1459,7 +1459,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].reg = opcode[12:17].uint
             cmd[1].dtyp = dt_dword
             cmd[2].type = o_imm
-            cmd[2].value = opcode[17:24].uint
+            cmd[2].value = SIGNEXT(opcode[17:24].uint,7)
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0xa and opcode[24:26].uint == 0x3:
@@ -1471,7 +1471,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].reg = opcode[12:17].uint
             cmd[1].dtyp = dt_dword
             cmd[2].type = o_imm
-            cmd[2].value = opcode[17:24].uint
+            cmd[2].value = SIGNEXT(opcode[17:24].uint,7)
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:7].uint == 0xa and opcode[22:26].uint == 0x0:
@@ -1507,7 +1507,7 @@ class openrisc_processor_t(processor_t):
             cmd[1].reg = opcode[12:17].uint
             cmd[1].dtyp = dt_dword
             cmd[2].type = o_reg
-            cmd[2].reg = opcode[17:22].uint
+            cmd[2].reg = SIGNEXT(opcode[17:22].uint,5)
             cmd[2].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:9].uint == 0x14c and opcode[19:26].uint == 0x0:
@@ -2195,19 +2195,18 @@ class openrisc_processor_t(processor_t):
     # add data and far call offset
     #这里是简单的化简 供参考用
     def simplify(self):
-        if self.cmd.itype == self.inames['lui']:
+        if self.cmd.itype == self.inames['mh']:
             # print "lui at: %08X on reg %s value %Xh\n" % (self.cmd.ea, self.regNames[self.cmd[0].reg], self.cmd[1].value)
             self.remove_mh_array_object(self.cmd[0].reg)
             self.last_mh_array.append({"reg": self.cmd[0].reg, "value": self.cmd[1].value})
             return
-        elif self.cmd.itype == self.inames['ld'] or self.cmd.itype == self.inames['lw'] \
-                or self.cmd.itype == self.inames['lh'] or self.cmd.itype == self.inames['lb'] \
-                or self.cmd.itype == self.inames['ldu'] or self.cmd.itype == self.inames['lwu'] \
-                or self.cmd.itype == self.inames['lhu'] or self.cmd.itype == self.inames['lbu']:
-            last_record_lui = self.get_mh_array_object(self.cmd[1].reg)
+        elif self.cmd.itype == self.inames['lds'] or self.cmd.itype == self.inames['ldt'] \
+                or self.cmd.itype == self.inames['ldw'] or self.cmd.itype == self.inames['sts'] \
+                or self.cmd.itype == self.inames['stt'] or self.cmd.itype == self.inames['stw']:
+            last_record_mh = self.get_mh_array_object(self.cmd[1].reg)
             self.remove_mh_array_object(self.cmd[0].reg)
-            if last_record_lui != None:
-                target_offset = toInt((last_record_lui["value"] << 12) + self.cmd[1].addr)
+            if last_record_mh != None:
+                target_offset = toInt((last_record_mh["value"] << 12) + self.cmd[1].addr)
                 if (isLoaded(target_offset)):
                     ua_add_dref(0, target_offset, dr_R)
                 self.add_auto_resolved_constant_comment(target_offset)
@@ -2215,21 +2214,14 @@ class openrisc_processor_t(processor_t):
             cmd = self.cmd
             ft = cmd.get_canon_feature()
             if ft & CF_CHG1:
-                last_record_lui = self.get_mh_array_object(self.cmd[1].reg)
+                last_record_mh = self.get_mh_array_object(self.cmd[1].reg)
                 self.remove_mh_array_object(self.cmd[0].reg)
-                if last_record_lui != None:
+                if last_record_mh != None:
                     # print "trying to match addi or jalr for lui, cur ea: %08X" % (self.cmd.ea)
-                    if self.cmd.itype == self.inames['addi']:
-                        target_offset = toInt((last_record_lui["value"] << 12) + self.cmd[2].value)
+                    if self.cmd.itype == self.inames['ml'] or self.cmd.itype == self.inames['ms']:
+                        target_offset = toInt((last_record_mh["value"] << 10) + self.cmd[2].value)
                         if (isLoaded(target_offset)):
                             ua_add_dref(0, target_offset, dr_R)
-                        self.add_auto_resolved_constant_comment(target_offset)
-                    elif self.cmd.itype == self.inames['jalr']:
-                        if self.cmd[0].reg == 1 and self.cmd[1].reg == 1:
-                            return
-                        target_offset = toInt((last_record_lui["value"] << 12) + self.cmd[2].value)
-                        if (isLoaded(target_offset)):
-                            ua_add_cref(0, target_offset, fl_JN)
                         self.add_auto_resolved_constant_comment(target_offset)
     #这个函数不用动哒
     def add_stkpnt(self, pfn, v):
@@ -2258,62 +2250,20 @@ class openrisc_processor_t(processor_t):
         cmd = self.cmd
         # 下面的全是套路，flow是该指令是否将控制流传给下一条相邻指令的意思
         flow = False
+        # 其他指令正常处理
+        ft = cmd.get_canon_feature()
+        if ft & CF_USE1:
+            self._emu_operand(cmd[0])
+        if ft & CF_USE2:
+            self._emu_operand(cmd[1])
+        if ft & CF_USE3:
+            self._emu_operand(cmd[2])
+        if ft & CF_USE4:
+            self._emu_operand(cmd[3])
 
-        # 首先对特殊指令做处理
-        """if cmd.itype == self.inames['jal']:
-            # 无条件跳转 类似于x86 jmp
-            if cmd[0].reg == 0:
-                flow = False
-                ua_add_cref(0, cmd[1].addr, fl_JN)
-            # 带link跳转 类似于x86 call
-            if cmd[0].reg == 1:
-                flow = True
-                ua_add_cref(0, cmd[1].addr, fl_CN)
-                ua_add_cref(0, cmd.ea + cmd.size, fl_F)
-            # 其他情况
-            elif cmd[0].reg != 0:
-                ua_add_cref(0, cmd.ea + cmd.size, fl_F)
-                flow = True
-            pass
-        elif cmd.itype == self.inames['jalr']:
-            # 无条件跳转
-            if cmd[0].reg == 0:
-                flow = False
-            # 中间文件的用于重定位占位的特殊情况
-            elif cmd[0].reg == 1 and cmd[1].reg == 1 and cmd[1].addr == 0:
-                flow = True
-            # 跳转至link 相当于retn
-            elif cmd[1].reg == 1 and cmd[1].addr == 0:
-                flow = False
-            # 子函数调用 相当于call
-            elif cmd[0].reg == 1:
-                flow = True
-                ua_add_cref(0, cmd.ea + cmd.size, fl_F)
-                try:
-                    nn = netnode("$ simplified_addr", 0, False)
-                    if nn == BADNODE:
-                        raise Exception("Resolved addr not found")
-                    target = nn.altval(self.cmd.ea)
-                    ua_add_cref(0, target, fl_CN)
-                except:
-                    print "Error while making function from cmd.ea:0x%X" % (cmd.ea)
-            else:
-                flow = False
-        else
-            # 其他指令正常处理
-            ft = cmd.get_canon_feature()
-            if ft & CF_USE1:
-                self._emu_operand(cmd[0])
-            if ft & CF_USE2:
-                self._emu_operand(cmd[1])
-            if ft & CF_USE3:
-                self._emu_operand(cmd[2])
-            if ft & CF_USE4:
-                self._emu_operand(cmd[3])
-
-            elif not ft & CF_STOP:
-                ua_add_cref(0, cmd.ea + cmd.size, fl_F)
-                flow = True
+        elif not ft & CF_STOP:
+            ua_add_cref(0, cmd.ea + cmd.size, fl_F)
+            flow = True
         self.simplify()
         # trace the stack pointer if:
         #   - it is the second analysis pass
@@ -2322,7 +2272,7 @@ class openrisc_processor_t(processor_t):
             if flow:
                 self.trace_sp()  # trace modification of SP register
             else:
-                recalc_spd(self.cmd.ea)  # recalculate SP register for the next insn"""
+                recalc_spd(self.cmd.ea)  # recalculate SP register for the next insn
         return True
 
     # 剩下的这两个函数全是基本固定的 等出问题再说
@@ -2332,6 +2282,9 @@ class openrisc_processor_t(processor_t):
 
         if optype == o_reg:
             out_register(self.regNames[op.reg])
+            if fl & FL_MULTIREG:
+                out_symbol(":")
+                out_register(self.regNames[op.reg+1])
 
         elif optype == o_imm:
             OutValue(op, OOFW_IMM | OOFW_32 | OOF_SIGNED)
