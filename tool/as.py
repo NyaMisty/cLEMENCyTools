@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
-import argparse, io, os, pathlib, re, sys
+import argparse, collections, io, os, pathlib, re, sys
 
 def error(msg, *args):
     print(msg.format(*args), file=sys.stderr)
     sys.exit(2)
+
+def serialize_sign(l, x):
+    if x >= 1 << l-1:
+        error('Offset too large')
+    if x < -(1 << l-1):
+        error('Offset too small')
+    return x if x >= 0 else (1 << l) + x
 
 CONDITION = {
     'n': 0,
@@ -20,7 +27,7 @@ CONDITION = {
     'sle': 11,
     'sg': 12,
     'sge': 13,
-    '': 14,
+    '': 15,
 }
 
 ADJ_RB = {
@@ -31,7 +38,7 @@ ADJ_RB = {
 
 def assemble(fin, fout):
     table = {}
-    with open(pathlib.Path(__file__).resolve().parent.parent / 'isa.txt') as f:
+    with open((pathlib.Path(__file__).resolve().parent.parent / 'isa.txt').as_posix()) as f:
         for lineno, line in enumerate(f.readlines(), 1):
             inst, *fields, _nbytes = line.rstrip('\n').split()
             entry = []
@@ -56,6 +63,9 @@ def assemble(fin, fout):
                     error('{}: unknown recognized rhs `{}`', lineno, rhs)
                 table[inst.upper()] = entry
 
+    addr = 0
+    label2addr = {}
+    label2ref = collections.defaultdict(list)
     buf = bytearray()
     for lineno, line in enumerate(fin.readlines(), 1):
         line = line.strip()
@@ -63,6 +73,9 @@ def assemble(fin, fout):
         m = re.match(r'^(\w+):$', line)
         if m:
             label = m.group(1)
+            if label in label2addr:
+                error('{}: label `{}` redefined', lineno, label)
+            label2addr[m.group(1)] = addr
         else:
             if ' ' in line:
                 inst, rest = line.split(' ', 1)
@@ -125,8 +138,14 @@ def assemble(fin, fout):
                     x = x << l | int(m.group(1))
                 elif i == 'Offset':
                     nth += 1
-                    # TODO(label)
-                    x = x << l | int(ops.pop(0))
+                    t = ops.pop(0)
+                    try:
+                        t = int(t, 0)
+                    except ValueError:
+                        if t not in label2addr:
+                            error('{}: unknown label `{}`', lineno, t)
+                        t = label2addr[t]
+                    x = x << l | serialize_sign(l, t)
                 elif i == 'UF':
                     x = x << l | (1 if uf else 0)
                     uf = False
@@ -135,12 +154,16 @@ def assemble(fin, fout):
                 else:
                     error('{}: unknown recognized `{}`', lineno, i)
                 n += l
+
+            assert n % 9 == 0, 'Unaligned op, please check'
+            addr += n // 9
             while n >= 8:
                 buf.append(x >> n-8)
                 x &= (1 << n-8) - 1
                 n -= 8
             if uf:
                 error('{}: `{}` does not have UF', lineno, inst)
+            label = None
     if n > 0:
         buf.append(x << 8-n)
     fout.write(bytes(buf))
@@ -162,7 +185,7 @@ Examples:
         if args.asm_file == '-':
             assemble(sys.stdin, fout)
         else:
-            with open(args.asm_file, 'rb') as fin:
+            with open(args.asm_file, 'r') as fin:
                 assemble(fin, fout)
 
 if __name__ == '__main__':
