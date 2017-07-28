@@ -63,7 +63,7 @@ def assemble(fin, fout):
                     error('{}: unknown recognized rhs `{}`', lineno, rhs)
                 table[inst.upper()] = entry
 
-    addr = 0
+    addr = x = n = 0
     label2addr = {}
     label2ref = collections.defaultdict(list)
     buf = bytearray()
@@ -110,9 +110,9 @@ def assemble(fin, fout):
                 error('Unknown instruction `{}`'.format(inst))
 
             entry = table[inst]
-            x = n = 0
             # most instructions
 
+            n0 = n
             nth = 0
             for l, i in entry:
                 if i in ('imm', 'Location', 'mem_off', 'Memory_Flags', 'Reg_Count'):
@@ -155,8 +155,8 @@ def assemble(fin, fout):
                     error('{}: unknown recognized `{}`', lineno, i)
                 n += l
 
-            assert n % 9 == 0, 'Unaligned op, please check'
-            addr += n // 9
+            assert (n-n0) % 9 == 0, 'Unaligned op, please check'
+            addr += (n-n0) // 9
             while n >= 8:
                 buf.append(x >> n-8)
                 x &= (1 << n-8) - 1
