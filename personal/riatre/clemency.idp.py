@@ -7,11 +7,6 @@ import idautils
 import copy
 import ctypes
 
-class InvalidInstructionError(Exception):
-    pass
-
-class DecodingError(Exception):
-    pass
 
 def ToSignedInteger(x, bw):
     return x - (1 << bw) if x & (1 << (bw - 1)) else x
@@ -34,7 +29,7 @@ FL_CS = 0x000000200  # Condition flag is set
 FL_NCS = 0x000000400  # Condition flag is not set
 FL_INDIRECT = 0x000000800  # This is an indirect access (not immediate value)
 FL_SIGNED = 0x000001000  # This is a signed operand
-FL_MULTIREG = 0x000002000
+FL_MULTIREG = 0x000002000  # This is a multi reg operand
 
 PRFL_NOUF = 0x1
 
@@ -47,7 +42,12 @@ o_cc = o_idpspec5
 
 PR_TINFO = 0x20000000  # not present in python??
 
-class openrisc_processor_hook_t(IDP_Hooks):
+
+class DecodingError(Exception):
+    pass
+
+
+class clemency_processor_hook_t(IDP_Hooks):
     def __init__(self):
         IDP_Hooks.__init__(self)
 
@@ -147,7 +147,8 @@ class ClemencyProcessor(processor_t):
         {'name': 'adcim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'ADCIM RA, RB, IMM (54bit-reg'},
         {'name': 'adcm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'ra:ra+1 <- rb:rb+1 + rc:rc+1 + C_B'},
         {'name': 'adf', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'add float num'},
-        {'name': 'adfm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': '54bit float number add(ra:ra+1 <- rb:rb+1 + rc:rc+1)'},
+        {'name': 'adfm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': '54bit float number add(ra:ra+1 <- rb:rb+1 + rc:rc+1)'},
         {'name': 'adi', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'ra <- rb + imm'},
         {'name': 'adim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': ''},
         {'name': 'adm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': ''},
@@ -207,7 +208,7 @@ class ClemencyProcessor(processor_t):
         {'name': 'car', 'feature': CF_CALL | CF_USE1, 'cmt': 'Call Relative   CAR Offset'},
         {'name': 'cm', 'feature': CF_USE1 | CF_USE2, 'cmt': 'Compare  CM rA, rB'},
         {'name': 'cmf', 'feature': CF_USE1 | CF_USE2, 'cmt': 'Compare Floating Point  CMF rA, rB'},
-        {'name': 'cmfm', 'feature': CF_USE1 | CF_USE2,'cmt': 'Compare Floating Point Multi Reg CMFM rA, rB'},
+        {'name': 'cmfm', 'feature': CF_USE1 | CF_USE2, 'cmt': 'Compare Floating Point Multi Reg CMFM rA, rB'},
         {'name': 'cmi', 'feature': CF_USE1 | CF_USE2, 'cmt': 'Compare Immediate   CMI rA, IMM'},
         {'name': 'cmim', 'feature': CF_USE1 | CF_USE2, 'cmt': 'Compare Immediate Multi Reg  CMIM rA, IMM(ra:ra+1)'},
         {'name': 'cmm', 'feature': CF_USE1 | CF_USE2, 'cmt': 'Compare Multi Reg   CMM rA, rB'},
@@ -229,19 +230,25 @@ class ClemencyProcessor(processor_t):
         {'name': 'crsge', 'feature': CF_USE1 | CF_CALL, 'cmt': 's >='},
         #
         {'name': 'dbrk', 'feature': CF_STOP, 'cmt': 'Debug Break    DBRK'},
-        {'name': 'di', 'feature': CF_USE1 , 'cmt': 'Disable Interrupts   DI rA'},
-        {'name': 'dmt', 'feature': CF_USE1 | CF_USE2 | CF_USE3, 'cmt': 'copy data from [rb + p] to [ra + p] for rc times  DMT rA, rB, rC'},
+        {'name': 'di', 'feature': CF_USE1, 'cmt': 'Disable Interrupts   DI rA'},
+        {'name': 'dmt', 'feature': CF_USE1 | CF_USE2 | CF_USE3,
+         'cmt': 'copy data from [rb + p] to [ra + p] for rc times  DMT rA, rB, rC'},
         {'name': 'dv', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Divide   DV rA, rB, rC'},
-        {'name': 'dvf', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Divide Floating Point   DVF rA, rB, rC'},
-        {'name': 'dvfm', 'feature': CF_USE1 | CF_USE2 | CF_USE3| CF_CHG1,'cmt': 'Divide Floating Point Multi Reg    DVFM rA, rB, rC'},
-        {'name': 'dvi', 'feature': CF_USE1 | CF_USE2 | CF_USE3 |CF_CHG1, 'cmt': 'Divide Immediate    DVI rA, rB, IMM'},
-        {'name': 'dvim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Divide Immediate Multi Reg DVIM rA, rB, IMM'},
+        {'name': 'dvf', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Divide Floating Point   DVF rA, rB, rC'},
+        {'name': 'dvfm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Divide Floating Point Multi Reg    DVFM rA, rB, rC'},
+        {'name': 'dvi', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Divide Immediate    DVI rA, rB, IMM'},
+        {'name': 'dvim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Divide Immediate Multi Reg DVIM rA, rB, IMM'},
         {'name': 'dvis', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Divide Immediate Signed    DVIS rA, rB, IMM'},
-        {'name': 'dvism', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Divide Immediate Signed Multi Reg  DVISM rA, rB, IMM'},
+        {'name': 'dvism', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Divide Immediate Signed Multi Reg  DVISM rA, rB, IMM'},
         {'name': 'dvm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Divide Multi Reg    DVM rA, rB, rC'},
         {'name': 'dvs', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Divide Signed   DVS rA, rB, rC'},
-        {'name': 'dvsm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Divide Signed Multi Reg    DVSM rA, rB, rC'},
-        {'name': 'ei', 'feature': CF_USE1 , 'cmt': 'Enable Interrupts    EI rA'},
+        {'name': 'dvsm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Divide Signed Multi Reg    DVSM rA, rB, rC'},
+        {'name': 'ei', 'feature': CF_USE1, 'cmt': 'Enable Interrupts    EI rA'},
         #
         {'name': 'fti', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Float to Integer ra <- (int)rb ;FTI rA, rB'},
         {'name': 'ftim', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Float to Integer Multi Reg FTIM rA, rB'},
@@ -249,7 +256,7 @@ class ClemencyProcessor(processor_t):
         {'name': 'ir', 'feature': CF_STOP, 'cmt': 'Interrupt Return IR'},
         {'name': 'itf', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Integer to Float    ITF rA, rB'},
         {'name': 'itfm', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Integer to Float Multi Reg ITFM rA, rB'},
-        #load
+        # load
         {'name': 'lds', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
          'cmt': 'Load Single    LDSm rA, [rB + Offset, RegCount] (rB not modified)'},
         {'name': 'ldt', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
@@ -270,82 +277,118 @@ class ClemencyProcessor(processor_t):
          'cmt': 'Load Tri    LDTm rA, [rB + Offset, RegCount] (rB added)'},
         {'name': 'lddw', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
          'cmt': 'Load Word   LDWm rA, [rB + Offset, RegCount] (rB added)'},
-        #
+
         {'name': 'md', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Modulus  MD rA, rB, rC'},
-        {'name': 'mdf', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Modulus Floating Point  MDF rA, rB, rC'},
-        {'name': 'mdfm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Modulus Floating Point Multi Reg   MDFM rA, rB, rC'},
+        {'name': 'mdf', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Modulus Floating Point  MDF rA, rB, rC'},
+        {'name': 'mdfm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Modulus Floating Point Multi Reg   MDFM rA, rB, rC'},
         {'name': 'mdi', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Modulus Immediate   MDI rA, rB, IMM'},
-        {'name': 'mdim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Modulus Immediate Multi Reg    MDIM rA, rB, IMM'},
-        {'name': 'mdis', 'feature': CF_USE1 | CF_USE2 | CF_USE3 |CF_CHG1, 'cmt': 'Modulus Immediate Signed   MDIS rA, rB, IMM'},
-        {'name': 'mdism', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Modulus Immediate Signed Multi Reg MDISM rA, rB, IMM'},
+        {'name': 'mdim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Modulus Immediate Multi Reg    MDIM rA, rB, IMM'},
+        {'name': 'mdis', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Modulus Immediate Signed   MDIS rA, rB, IMM'},
+        {'name': 'mdism', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Modulus Immediate Signed Multi Reg MDISM rA, rB, IMM'},
         {'name': 'mdm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Modulus Multi Reg   MDM rA, rB, rC'},
         {'name': 'mds', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Modulus Signed  MDS rA, rB, rC'},
         {'name': 'mdsm', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Modulus Signed Multi Reg   MDSM rA, rB, rC'},
-        
+
         #
         {'name': 'mh', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Move High    MH rA, IMM'},
         {'name': 'ml', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Move Low ML rA, IMM'},
         {'name': 'ms', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Move Low Signed  MS rA, IMM'},
         {'name': 'mu', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Multiply MU rA, rB, rC'},
-        {'name': 'muf', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Multiply Floating Point MUF rA, rB, rC'},
-        {'name': 'mufm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Multiply Floating Point Multi Reg  MUFM rA, rB, rC'},
+        {'name': 'muf', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Multiply Floating Point MUF rA, rB, rC'},
+        {'name': 'mufm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Multiply Floating Point Multi Reg  MUFM rA, rB, rC'},
         {'name': 'mui', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Multiply Immediate  MUI rA, rB, IMM'},
-        {'name': 'muim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Multiply Immediate Multi Reg   MUIM rA, rB, IMM'},
-        {'name': 'muis', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Multiply Immediate Signed  MUIS rA, rB, IMM'},
-        {'name': 'muism', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Multiply Immediate Signed Multi Reg    MUISM rA, rB, IMM'},
+        {'name': 'muim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Multiply Immediate Multi Reg   MUIM rA, rB, IMM'},
+        {'name': 'muis', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Multiply Immediate Signed  MUIS rA, rB, IMM'},
+        {'name': 'muism', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Multiply Immediate Signed Multi Reg    MUISM rA, rB, IMM'},
         {'name': 'mum', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Multiply Multi Reg  MUM rA, rB, rC'},
         {'name': 'mus', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Multiply Signed MUS rA, rB, rC'},
-        {'name': 'musm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Multiply Signed Multi Reg  MUSM rA, rB, rC'},
+        {'name': 'musm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Multiply Signed Multi Reg  MUSM rA, rB, rC'},
         #
         {'name': 'ng', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Negate   NG rA, rB'},
         {'name': 'ngf', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Negate Floating Point   NGF rA, rB'},
-        {'name': 'ngfm', 'feature': CF_USE1 | CF_USE2 | CF_CHG1,'cmt': 'Negate Floating Point Multi Reg    NGFM rA, rB'},
+        {'name': 'ngfm', 'feature': CF_USE1 | CF_USE2 | CF_CHG1,
+         'cmt': 'Negate Floating Point Multi Reg    NGFM rA, rB'},
         {'name': 'ngm', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Negate Multi Reg    NGM rA, rB'},
         {'name': 'nt', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Not  NT rA, rB'},
         {'name': 'ntm', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Not Multi Reg   NTM rA, rB'},
-        #or
+        # or
         {'name': 'or', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Or   OR rA, rB, rC'},
         {'name': 'ori', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Or Immediate    ORI rA, rB, IMM'},
         {'name': 'orm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Or Multi Reg    ORM rA, rB, rC'},
-        {'name': 're', 'feature': CF_STOP , 'cmt': 'Return   RE'},
+        {'name': 're', 'feature': CF_STOP, 'cmt': 'Return   RE'},
         {'name': 'rf', 'feature': CF_USE1 | CF_STOP | CF_CHG1, 'cmt': 'Read Flags   RF rA'},
         {'name': 'rl', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Rotate Left  RL rA, rB, rC'},
-        {'name': 'rli', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Rotate Left Immediate   RLI rA, rB, IMM'},
-        {'name': 'rlim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Rotate Left Immediate Multi Reg    RLIM rA, rB, IMM'},
-        {'name': 'rlm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Rotate Left Multi Reg   RLM rA, rB, rC'},
+        {'name': 'rli', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Rotate Left Immediate   RLI rA, rB, IMM'},
+        {'name': 'rlim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Rotate Left Immediate Multi Reg    RLIM rA, rB, IMM'},
+        {'name': 'rlm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Rotate Left Multi Reg   RLM rA, rB, rC'},
         {'name': 'rmp', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Read Memory Protection  RMP rA, rB'},
         {'name': 'rnd', 'feature': CF_USE1 | CF_CHG1, 'cmt': 'Random  RND rA'},
         {'name': 'rndm', 'feature': CF_USE1 | CF_CHG1, 'cmt': 'Random Multi Reg   RNDM rA'},
         {'name': 'rr', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Rotate Right RR rA, rB, rC'},
-        {'name': 'rri', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Rotate Right Immediate  RRI rA, rB, IMM'},
-        {'name': 'rrim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Rotate Right Immediate Multi Reg   RRIM rA, rB, rC'},
-        {'name': 'rrm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Rotate Right Multi Reg  RRM rA, rB, rC'},
-        {'name': 'sa', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Shift Arithemetic Right  SA rA, rB, rC'},
-        {'name': 'sai', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Shift Arithemetic Right Immediate  SAI rA, rB, IMM'},
-        {'name': 'saim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Shift Arithemetic Right Immediate Multi Reg    SAIM rA, rB, IMM'},
-        {'name': 'sam', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Shift Arithemetic Right Multi Reg  SAM rA, rB, rC'},
+        {'name': 'rri', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Rotate Right Immediate  RRI rA, rB, IMM'},
+        {'name': 'rrim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Rotate Right Immediate Multi Reg   RRIM rA, rB, rC'},
+        {'name': 'rrm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Rotate Right Multi Reg  RRM rA, rB, rC'},
+        {'name': 'sa', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Shift Arithemetic Right  SA rA, rB, rC'},
+        {'name': 'sai', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Shift Arithemetic Right Immediate  SAI rA, rB, IMM'},
+        {'name': 'saim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Shift Arithemetic Right Immediate Multi Reg    SAIM rA, rB, IMM'},
+        {'name': 'sam', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Shift Arithemetic Right Multi Reg  SAM rA, rB, rC'},
         {'name': 'sb', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Subtract SB rA, rB, rC'},
         {'name': 'sbc', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Subtract With Carry SBC rA, rB, rC'},
-        {'name': 'sbci', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Subtract Immediate With Carry  SBCI rA, rB, IMM'},
-        {'name': 'sbcim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Subtract Immediate Multi Reg With Carry    SBCIM rA, rB, IMM'},
-        {'name': 'sbcm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Subtract Multi Reg With Carry  SBCM rA, rB, rC'},
-        {'name': 'sbf', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Subtract Floating Point SBF rA, rB, rC'},
-        {'name': 'sbfm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Subtract Floating Point Multi Reg  SBFM rA, rB, rC'},
+        {'name': 'sbci', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Subtract Immediate With Carry  SBCI rA, rB, IMM'},
+        {'name': 'sbcim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Subtract Immediate Multi Reg With Carry    SBCIM rA, rB, IMM'},
+        {'name': 'sbcm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Subtract Multi Reg With Carry  SBCM rA, rB, rC'},
+        {'name': 'sbf', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Subtract Floating Point SBF rA, rB, rC'},
+        {'name': 'sbfm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Subtract Floating Point Multi Reg  SBFM rA, rB, rC'},
         {'name': 'sbi', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Subtract Immediate  SBI rA, rB, IMM'},
-        {'name': 'sbim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Subtract Immediate Multi Reg   SBIM rA, rB, IMM'},
+        {'name': 'sbim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Subtract Immediate Multi Reg   SBIM rA, rB, IMM'},
         {'name': 'sbm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Subtract Multi Reg  SBM rA, rB, rC'},
         {'name': 'ses', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Sign Extend Single  SES rA, rB'},
         {'name': 'sew', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Sign Extend Word    SEW rA, rB'},
-        {'name': 'sf', 'feature': CF_USE1 | CF_USE2 , 'cmt': 'Set Flags    SF rA'},
+        {'name': 'sf', 'feature': CF_USE1 | CF_USE2, 'cmt': 'Set Flags    SF rA'},
         {'name': 'sl', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Shift Left   SL rA, rB, rC'},
-        {'name': 'sli', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Shift Left Immediate    SLI rA, rB, IMM'},
-        {'name': 'slim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Shift Left Immediate Multi Reg SLIM rA, rB, IMM'},
-        {'name': 'slm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Shift Left Multi Reg    SLM rA, rB, rC'},
-        {'name': 'smp', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1 , 'cmt': 'Set Memory Protection   SMP rA, rB, FLAGS'},
+        {'name': 'sli', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Shift Left Immediate    SLI rA, rB, IMM'},
+        {'name': 'slim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Shift Left Immediate Multi Reg SLIM rA, rB, IMM'},
+        {'name': 'slm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Shift Left Multi Reg    SLM rA, rB, rC'},
+        {'name': 'smp', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Set Memory Protection   SMP rA, rB, FLAGS'},
         {'name': 'sr', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Shift Right  SR rA, rB, rC'},
-        {'name': 'sri', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Shift Right Immediate   SRI rA, rB, IMM'},
-        {'name': 'srim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Shift Right Immediate Multi Reg    SRIM rA, rB, IMM'},
-        {'name': 'srm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Shift Right Multi Reg   SRM rA, rB, rC'},
+        {'name': 'sri', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Shift Right Immediate   SRI rA, rB, IMM'},
+        {'name': 'srim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Shift Right Immediate Multi Reg    SRIM rA, rB, IMM'},
+        {'name': 'srm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
+         'cmt': 'Shift Right Multi Reg   SRM rA, rB, rC'},
+
         #
         {'name': 'sts', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
          'cmt': 'Store Single   STSm rA, [rB + Offset, RegCount] (rB not modified)'},
@@ -373,7 +416,7 @@ class ClemencyProcessor(processor_t):
         {'name': 'xri', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Xor Immediate   XRI rA, rB, IMM'},
         {'name': 'xrm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Xor Multi Reg   XRM rA, rB, rC'},
         {'name': 'zes', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Zero Extend Single  ZES rA, rB'},
-        {'name': 'zew', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Zero Extend Word    ZEW rA, rB'}       
+        {'name': 'zew', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Zero Extend Word    ZEW rA, rB'}
     ]
 
     instruc_end = len(instruc)
@@ -496,11 +539,13 @@ class ClemencyProcessor(processor_t):
 
         return opcode_size
 
+
     def ana(self):
         try:
             return self._ana()
         except DecodingError:
             return 0
+
 
     def _emu_operand(self, op):
         if op.type == o_mem:
@@ -513,7 +558,8 @@ class ClemencyProcessor(processor_t):
                 fl = fl_JN
             ua_add_cref(0, op.addr, fl)
 
-    #这三个是下面simplify的辅助函数可以看看供为参考
+
+    # 这三个是下面simplify的辅助函数可以看看供为参考
     def remove_ml_array_object(self, reg):
         ret = None
         # print "remove_lui_array_object: %s" % (self.regNames[reg])
@@ -527,6 +573,7 @@ class ClemencyProcessor(processor_t):
                 del self.last_ml_array[idx]
         return ret
 
+
     def get_ml_array_object(self, reg):
         ret = None
         # print "get_lui_array_object: %s" % (self.regNames[reg])
@@ -538,6 +585,7 @@ class ClemencyProcessor(processor_t):
             elif mh_record["reg"] == reg:
                 ret = mh_record
         return ret
+
 
     def remove_mh_array_object(self, reg):
         ret = None
@@ -552,6 +600,7 @@ class ClemencyProcessor(processor_t):
                 del self.last_mh_array[idx]
         return ret
 
+
     def get_mh_array_object(self, reg):
         ret = None
         # print "get_lui_array_object: %s" % (self.regNames[reg])
@@ -564,6 +613,7 @@ class ClemencyProcessor(processor_t):
                 ret = mh_record
         return ret
 
+
     def add_auto_resolved_address_comment(self, resolved_offset):
         buf = init_output_buffer(1024)
         r = out_name_expr(self.cmd, resolved_offset, BADADDR)
@@ -571,9 +621,10 @@ class ClemencyProcessor(processor_t):
             OutLong(toInt(resolved_offset) & EA_BITMASK, 16)
         term_output_buffer()
         MakeComm(self.cmd.ea, buf)
-        nn = netnode("$ simplified_addr",0,True)
-        nn.altset(self.cmd.ea,resolved_offset & EA_BITMASK)
+        nn = netnode("$ simplified_addr", 0, True)
+        nn.altset(self.cmd.ea, resolved_offset & EA_BITMASK)
         pass
+
 
     def add_auto_resolved_constant_comment(self, resolved_offset):
         buf = init_output_buffer(1024)
@@ -586,10 +637,11 @@ class ClemencyProcessor(processor_t):
         nn.altset(self.cmd.ea, resolved_offset & EA_BITMASK)
         pass
 
+
     # lui            a0, 65536
     # addi           a0, a0, 320
     # add data and far call offset
-    #这里是简单的化简 供参考用
+    # 这里是简单的化简 供参考用
     def simplify(self):
         if self.cmd.itype == self.inames['ml'] or self.cmd.itype == self.inames['ms']:
             # print "ml/md at: %08X on reg %s value %Xh\n" % (self.cmd.ea, self.regNames[self.cmd[0].reg], self.cmd[1].value)
@@ -613,8 +665,8 @@ class ClemencyProcessor(processor_t):
             self.remove_mh_array_object(self.cmd[0].reg)
             if last_record_mh != None:
                 target_offset = toInt((last_record_mh["value"] << 10) + self.cmd[1].addr)
-                #if (isLoaded(target_offset)):
-                ua_add_dref(0, target_offset, dr_R)
+                if (isLoaded(target_offset)):
+                    ua_add_dref(0, target_offset, dr_R)
                 self.add_auto_resolved_constant_comment(target_offset)
         else:
             cmd = self.cmd
@@ -627,18 +679,20 @@ class ClemencyProcessor(processor_t):
                     # print "trying to match addi or jalr for lui, cur ea: %08X" % (self.cmd.ea)
                     if self.cmd.itype == self.inames['mh']:
                         target_offset = toInt((last_record_ml["value"]) + (self.cmd[1].value << 10))
-                        if (isLoaded(target_offset)):
-                            ua_add_dref(0, target_offset, dr_R)
+                        #if (isLoaded(target_offset)):
+                        ua_add_dref(0, target_offset, dr_R)
                         self.add_auto_resolved_constant_comment(target_offset)
 
-    #这个函数不用动哒
+
+    # 这个函数不用动哒
     def add_stkpnt(self, pfn, v):
         if pfn:
             end = self.cmd.ea + self.cmd.size
             if not is_fixed_spd(end):
                 AddAutoStkPnt2(pfn, end, v)
 
-    #这里处理会修改sp的指令，如果懒or时间不够的话就留空吧
+
+    # 这里处理会修改sp的指令，如果懒or时间不够的话就留空吧
     def trace_sp(self):
         """
         Trace the value of the SP and create an SP change point if the current
@@ -654,6 +708,7 @@ class ClemencyProcessor(processor_t):
             # print spofs
             self.add_stkpnt(self.cmd.ea, spofs)"""
         pass
+
 
     def emu(self):
         cmd = self.cmd
@@ -684,6 +739,7 @@ class ClemencyProcessor(processor_t):
                 recalc_spd(self.cmd.ea)  # recalculate SP register for the next insn
         return True
 
+
     # 剩下的这两个函数全是基本固定的 等出问题再说
     def outop(self, op):
         optype = op.type
@@ -691,6 +747,9 @@ class ClemencyProcessor(processor_t):
 
         if optype == o_reg:
             out_register(self.regNames[op.reg])
+            if fl & FL_MULTIREG:
+                out_symbol(":")
+                out_register(self.regNames[op.reg + 1])
 
         elif optype == o_imm:
             OutValue(op, OOFW_IMM | OOFW_32 | OOF_SIGNED)
@@ -706,13 +765,11 @@ class ClemencyProcessor(processor_t):
                 out_tagoff(COLOR_ERROR)
                 QueueSet(Q_noName, self.cmd.ea)
                 # OutLong(op.addr, 16)
-
         elif optype == o_regset:
             out_register(self.regNames[op.reg])
             if op.value > 0:
                 out_symbol('-')
-                out_register(self.regNames[op.reg+op.value])
-
+                out_register(self.regNames[op.reg + op.value])
         elif optype == o_memflags:
             if op.specval > 3: out_keyword("???")
             else: out_keyword(['NA', 'RO', 'RW', 'RE'][op.specval])
@@ -734,6 +791,7 @@ class ClemencyProcessor(processor_t):
             return False
 
         return True
+
 
     def out(self):
         cmd = self.cmd
@@ -757,7 +815,8 @@ class ClemencyProcessor(processor_t):
         cvar.gl_comm = 1
         MakeLine(buf)
 
-    def notify_init(self,idp_file):
+
+    def notify_init(self, idp_file):
         try:
             idp_hook_stat = "un"
             print "IDP hook: checking for hook..."
@@ -768,10 +827,11 @@ class ClemencyProcessor(processor_t):
         except:
             print "IDP hook: not installed, installing now...."
             idp_hook_stat = ""
-            self.idphook = openrisc_processor_hook_t()
+            self.idphook = clemency_processor_hook_t()
             self.idphook.hook()
-        #cvar.inf.mf = LITTLE_ENDIAN
+        # cvar.inf.mf = LITTLE_ENDIAN
         return True
+
 
     def notify_term(self):
         try:
@@ -783,6 +843,7 @@ class ClemencyProcessor(processor_t):
             self.idphook = None
         except:
             pass
+
 
 def PROCESSOR_ENTRY():
     return ClemencyProcessor()
