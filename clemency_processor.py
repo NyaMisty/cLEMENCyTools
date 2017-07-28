@@ -141,7 +141,8 @@ class openrisc_processor_t(processor_t):
         "R10", "R11", "R12", "R13", "R14",
         "R15", "R16", "R17", "R18", "R19",
         "R20", "R21", "R22", "R23", "R24",
-        "R25", "R26", "R27", "R28", "R29",
+        "R25", "R26", "R27", "R28", "ST",
+        "RA", "PC", "FL",
         "CS", "DS"
     ]
 
@@ -257,10 +258,10 @@ class openrisc_processor_t(processor_t):
         {'name': 'itf', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Integer to Float    ITF rA, rB'},
         {'name': 'itfm', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Integer to Float Multi Reg ITFM rA, rB'},
         #load
-        {'name': 'lds', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_USE4 | CF_USE4 | CF_CHG1 | CF_CHG2,'cmt': 'Load Single    LDSm rA, [rB + Offset, RegCount]'},
-        {'name': 'ldt', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_USE4 | CF_USE4 | CF_CHG1 | CF_CHG2, 'cmt': 'Load Tri    LDTm rA, [rB + Offset, RegCount]'},
-        {'name': 'ldw', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_USE4 | CF_USE4 | CF_CHG1 | CF_CHG2, 'cmt': 'Load Word   LDWm rA, [rB + Offset, RegCount]'},
-        #
+        {'name': 'lds', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,'cmt': 'Load Single    LDSm rA, [rB + Offset, RegCount]'},
+        {'name': 'ldt', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2, 'cmt': 'Load Tri    LDTm rA, [rB + Offset, RegCount]'},
+        {'name': 'ldw', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2, 'cmt': 'Load Word   LDWm rA, [rB + Offset, RegCount]'},
+
         {'name': 'md', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Modulus  MD rA, rB, rC'},
         {'name': 'mdf', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Modulus Floating Point  MDF rA, rB, rC'},
         {'name': 'mdfm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,'cmt': 'Modulus Floating Point Multi Reg   MDFM rA, rB, rC'},
@@ -338,9 +339,9 @@ class openrisc_processor_t(processor_t):
         {'name': 'srm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Shift Right Multi Reg   SRM rA, rB, rC'},
         
         #
-        {'name': 'sts', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_USE4 | CF_USE4 | CF_CHG1 | CF_CHG2,'cmt': 'Store Single   STSm rA, [rB + Offset, RegCount]'},
-        {'name': 'stt', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_USE4 | CF_USE4 | CF_CHG1 | CF_CHG2, 'cmt': 'Store Tri   STTm rA, [rB + Offset, RegCount]'},
-        {'name': 'stw', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_USE4 | CF_USE4 | CF_CHG1 | CF_CHG2,'cmt': 'Store Word STWm rA, [rB + Offset, RegCount]'},
+        {'name': 'sts', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,'cmt': 'Store Single   STSm rA, [rB + Offset, RegCount]'},
+        {'name': 'stt', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2, 'cmt': 'Store Tri   STTm rA, [rB + Offset, RegCount]'},
+        {'name': 'stw', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,'cmt': 'Store Word STWm rA, [rB + Offset, RegCount]'},
         #
         {'name': 'wt', 'feature': 0, 'cmt': 'Wait WT'},
         {'name': 'xr', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Xor  XR rA, rB, rC'},
