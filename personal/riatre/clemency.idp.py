@@ -32,7 +32,7 @@ FL_INDIRECT = 0x000000800  # This is an indirect access (not immediate value)
 FL_SIGNED = 0x000001000  # This is a signed operand
 FL_MULTIREG = 0x000002000  # This is a multi reg operand
 
-PRFL_NOUF = 0x1
+PRFL_UF = 0x1
 
 FL_ABSOLUTE = 1  # absolute: &addr
 FL_SYMBOLIC = 2  # symbolic: addr
@@ -498,8 +498,8 @@ class ClemencyProcessor(processor_t):
         opcode_size = rins.size_in_bytes
         self.cmd.size = opcode_size
         if rins.update_flag is not None:
-            if opcode[rins.update_flag] == 0:
-                cmd.auxpref |= PRFL_NOUF
+            if opcode[rins.update_flag] == 1:
+                cmd.auxpref |= PRFL_UF
 
         # This is kinda dirty...
         def ParseLoadStore():
@@ -792,7 +792,7 @@ class ClemencyProcessor(processor_t):
                 out_register(self.regNames[op.reg + op.value])
         elif optype == o_memflags:
             if op.specval > 3: out_keyword("???")
-            else: out_keyword(['NA', 'RO', 'RW', 'RE'][op.specval])
+            else: out_keyword(['NA', 'R', 'RW', 'E'][op.specval])
         elif optype == o_displ:
             if fl & FL_INDIRECT:
                 out_symbol('[')
@@ -816,8 +816,8 @@ class ClemencyProcessor(processor_t):
         cmd = self.cmd
         ft = cmd.get_canon_feature()
         buf = init_output_buffer(1024)
-        if cmd.auxpref & PRFL_NOUF:
-            OutMnem(15, ".nf")
+        if cmd.auxpref & PRFL_UF:
+            OutMnem(15, ".")
         else:
             OutMnem(15)
         if ft & CF_USE1:
