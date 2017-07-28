@@ -83,7 +83,7 @@ class ClemencyProcessorHook(IDP_Hooks):
         return 2
 
     def get_autocmt(self):
-        return 2
+        return 1
 
 class BitStream(object):
     def __init__(self, v, bw):
