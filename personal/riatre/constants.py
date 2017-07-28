@@ -1,39 +1,24 @@
-import ctypes
 import collections
 
-# ---------------- Dirty Constants -----------------
-def SIGNEXT(x, b):
-    m = 1 << (b - 1)
-    m = 1 << (b - 1)
-    x = x & ((1 << b) - 1)
-    return (x ^ m) - m
-
-#def toInt(x):
-#    return ctypes.c_int(x & 0xffffffff).value
-
-EA_BITMASK = 0x7ffffff
-
-FL_B = 0x000000001  # 8 bits
-FL_W = 0x000000002  # 16 bits
-FL_D = 0x000000004  # 32 bits
-FL_Q = 0x000000008  # 64 bits
-FL_OP1 = 0x000000010  # check operand 1
-FL_32 = 0x000000020  # Is 32
-FL_64 = 0x000000040  # Is 64
-FL_NATIVE = 0x000000080  # native call (not EbcCal)
-FL_REL = 0x000000100  # relative address
-FL_CS = 0x000000200  # Condition flag is set
-FL_NCS = 0x000000400  # Condition flag is not set
-FL_INDIRECT = 0x000000800  # This is an indirect access (not immediate value)
-FL_SIGNED = 0x000001000  # This is a signed operand
-
-FL_ABSOLUTE = 1  # absolute: &addr
-FL_SYMBOLIC = 2  # symbolic: addr
-
-PR_TINFO = 0x20000000  # not present in python??
-# -------------------------------------------------
-
 # --------------- ISA Definitions -----------------
+
+CONDSUFFIX = {
+	0b0000: 'n',
+	0b0001: 'e',
+	0b0010: 'l',
+	0b0011: 'le',
+	0b0100: 'g',
+	0b0101; 'ge',
+	0b0110: 'no',
+	0b0111: 'o',
+	0b1000: 'ns',
+	0b1001: 's',
+	0b1010: 'sl',
+	0b1011: 'sle',
+	0b1100: 'sg',
+	0b1101: 'sge',
+	0b1111: '', # Always
+}
 
 ISAOperand = collections.namedtuple('ISAOperand', ['name', 'start', 'width'])
 ISAInstruction = collections.namedtuple('ISAInstruction', ['size_in_bytes', 'name', 'operands', 'opcode_bits', 'opcode', 'subopcode', 'subopcode_start', 'subopcode_bits', 'update_flag'])
