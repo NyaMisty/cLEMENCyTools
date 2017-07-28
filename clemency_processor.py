@@ -402,6 +402,7 @@ class openrisc_processor_t(processor_t):
         temp_opcode += temp
         opcode += self.convertMiddleEndian(temp_opcode)
         print hex(opcode.uint)
+
         if opcode[0:7].uint == 0x0 and opcode[22:26].uint == 0x0:
             cmd.itype = self.inames["ad"]
             cmd[0].type = o_reg
@@ -558,10 +559,95 @@ class openrisc_processor_t(processor_t):
             cmd[2].reg = opcode[17:22].uint
             cmd[2].dtyp = dt_dword
             opcode_size = 3
-        elif opcode[0:6].uint == 0x30:
+        elif opcode[0:6].uint == 0x30 and opcode[6:10].uint == 0xf:
             cmd.itype = self.inames["b"]
-            # TODO
-            # TODO
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x30 and opcode[6:10].uint == 0x0:
+            cmd.itype = self.inames["bn"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x30 and opcode[6:10].uint == 0x1:
+            cmd.itype = self.inames["be"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x30 and opcode[6:10].uint == 0x2:
+            cmd.itype = self.inames["bl"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x30 and opcode[6:10].uint == 0x3:
+            cmd.itype = self.inames["ble"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x30 and opcode[6:10].uint == 0x4:
+            cmd.itype = self.inames["bg"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x30 and opcode[6:10].uint == 0x5:
+            cmd.itype = self.inames["bge"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x30 and opcode[6:10].uint == 0x6:
+            cmd.itype = self.inames["bno"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x30 and opcode[6:10].uint == 0x7:
+            cmd.itype = self.inames["bo"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x30 and opcode[6:10].uint == 0x8:
+            cmd.itype = self.inames["bns"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x30 and opcode[6:10].uint == 0x9:
+            cmd.itype = self.inames["bs"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x30 and opcode[6:10].uint == 0xa:
+            cmd.itype = self.inames["bsl"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x30 and opcode[6:10].uint == 0xb:
+            cmd.itype = self.inames["bsle"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x30 and opcode[6:10].uint == 0xc:
+            cmd.itype = self.inames["bsg"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x30 and opcode[6:10].uint == 0xd:
+            cmd.itype = self.inames["bsge"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:9].uint == 0x14c and opcode[19:26].uint == 0x40:
             cmd.itype = self.inames["bf"]
@@ -581,33 +667,209 @@ class openrisc_processor_t(processor_t):
             cmd[1].reg = opcode[14:19].uint
             cmd[1].dtyp = dt_dword
             opcode_size = 3
-        elif opcode[0:6].uint == 0x32 and opcode[15:18].uint == 0x0:
+        elif opcode[0:6].uint == 0x32 and opcode[6:10].uint == 0xf and opcode[15:18].uint == 0x0:
             cmd.itype = self.inames["br"]
-            # TODO
-            cmd[1].type = o_reg
-            cmd[1].reg = opcode[10:15].uint
-            cmd[1].dtyp = dt_dword
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x32 and opcode[6:10].uint == 0x0 and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["brn"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x32 and opcode[6:10].uint == 0x1 and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["bre"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x32 and opcode[6:10].uint == 0x2 and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["brl"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x32 and opcode[6:10].uint == 0x3 and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["brle"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x32 and opcode[6:10].uint == 0x4 and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["brg"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x32 and opcode[6:10].uint == 0x5 and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["brge"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x32 and opcode[6:10].uint == 0x6 and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["brno"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x32 and opcode[6:10].uint == 0x7 and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["bro"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x32 and opcode[6:10].uint == 0x8 and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["brns"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x32 and opcode[6:10].uint == 0x9 and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["brs"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x32 and opcode[6:10].uint == 0xa and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["brsl"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x32 and opcode[6:10].uint == 0xb and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["brsle"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x32 and opcode[6:10].uint == 0xc and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["brsg"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x32 and opcode[6:10].uint == 0xd and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["brsge"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
             opcode_size = 2
         elif opcode[0:9].uint == 0x1c4:
             cmd.itype = self.inames["bra"]
-            # TODO
+            cmd[0].type = o_near
+            cmd[0].addr = opcode[9:36].uint
+            cmd[0].dtyp = dt_dword
             opcode_size = 4
         elif opcode[0:9].uint == 0x1c0:
             cmd.itype = self.inames["brr"]
-            # TODO
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[9:36].uint, 27)
+            cmd[0].dtyp = dt_dword
             opcode_size = 4
-        elif opcode[0:6].uint == 0x35:
+        elif opcode[0:6].uint == 0x35 and opcode[6:10].uint == 0xf:
             cmd.itype = self.inames["c"]
-            # TODO
-            # TODO
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x35 and opcode[6:10].uint == 0x0:
+            cmd.itype = self.inames["cn"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x35 and opcode[6:10].uint == 0x1:
+            cmd.itype = self.inames["ce"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x35 and opcode[6:10].uint == 0x2:
+            cmd.itype = self.inames["cl"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x35 and opcode[6:10].uint == 0x3:
+            cmd.itype = self.inames["cle"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x35 and opcode[6:10].uint == 0x4:
+            cmd.itype = self.inames["cg"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x35 and opcode[6:10].uint == 0x5:
+            cmd.itype = self.inames["cge"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x35 and opcode[6:10].uint == 0x6:
+            cmd.itype = self.inames["cno"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x35 and opcode[6:10].uint == 0x7:
+            cmd.itype = self.inames["co"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x35 and opcode[6:10].uint == 0x8:
+            cmd.itype = self.inames["cns"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x35 and opcode[6:10].uint == 0x9:
+            cmd.itype = self.inames["cs"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x35 and opcode[6:10].uint == 0xa:
+            cmd.itype = self.inames["csl"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x35 and opcode[6:10].uint == 0xb:
+            cmd.itype = self.inames["csle"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x35 and opcode[6:10].uint == 0xc:
+            cmd.itype = self.inames["csg"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
+            opcode_size = 3
+        elif opcode[0:6].uint == 0x35 and opcode[6:10].uint == 0xd:
+            cmd.itype = self.inames["csge"]
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[10:27].uint, 27)
+            cmd[0].dtyp = dt_dword
             opcode_size = 3
         elif opcode[0:9].uint == 0x1cc:
             cmd.itype = self.inames["caa"]
-            # TODO
+            cmd[0].type = o_near
+            cmd[0].addr = opcode[9:36].uint
+            cmd[0].dtyp = dt_dword
             opcode_size = 4
         elif opcode[0:9].uint == 0x1c8:
             cmd.itype = self.inames["car"]
-            # TODO
+            cmd[0].type = o_near
+            cmd[0].addr = cmd.ea + SIGNEXT(opcode[9:36].uint, 27)
+            cmd[0].dtyp = dt_dword
             opcode_size = 4
         elif opcode[0:8].uint == 0xb8:
             cmd.itype = self.inames["cm"]
@@ -663,12 +925,95 @@ class openrisc_processor_t(processor_t):
             cmd[1].reg = opcode[13:18].uint
             cmd[1].dtyp = dt_dword
             opcode_size = 2
-        elif opcode[0:6].uint == 0x37 and opcode[15:18].uint == 0x0:
+        elif opcode[0:6].uint == 0x37 and opcode[6:10].uint == 0xf and opcode[15:18].uint == 0x0:
             cmd.itype = self.inames["cr"]
-            # TODO
-            cmd[1].type = o_reg
-            cmd[1].reg = opcode[10:15].uint
-            cmd[1].dtyp = dt_dword
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x37 and opcode[6:10].uint == 0x0 and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["crn"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x37 and opcode[6:10].uint == 0x1 and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["cre"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x37 and opcode[6:10].uint == 0x2 and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["crl"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x37 and opcode[6:10].uint == 0x3 and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["crle"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x37 and opcode[6:10].uint == 0x4 and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["crg"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x37 and opcode[6:10].uint == 0x5 and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["crge"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x37 and opcode[6:10].uint == 0x6 and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["crno"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x37 and opcode[6:10].uint == 0x7 and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["cro"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x37 and opcode[6:10].uint == 0x8 and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["crns"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x37 and opcode[6:10].uint == 0x9 and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["crs"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x37 and opcode[6:10].uint == 0xa and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["crsl"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x37 and opcode[6:10].uint == 0xb and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["crsle"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x37 and opcode[6:10].uint == 0xc and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["crsg"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
+            opcode_size = 2
+        elif opcode[0:6].uint == 0x37 and opcode[6:10].uint == 0xd and opcode[15:18].uint == 0x0:
+            cmd.itype = self.inames["crsge"]
+            cmd[0].type = o_reg
+            cmd[0].reg = opcode[10:15].uint
+            cmd[0].dtyp = dt_dword
             opcode_size = 2
         elif opcode[0:18].uint == 0x3ffff:
             cmd.itype = self.inames["dbrk"]
