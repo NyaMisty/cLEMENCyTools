@@ -2119,7 +2119,7 @@ class openrisc_processor_t(processor_t):
             opcode_size = 3
         else:
             raise DecodingError()
-        if "Multi Reg" in self.instrs[cmd.itype].cmt:
+        if "Multi Reg" in self.instrs[cmd.itype]['cmt']:
             cmd[0].specval |= FL_MULTIREG
             cmd[1].specval |= FL_MULTIREG
         self.cmd.size = opcode_size
