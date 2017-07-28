@@ -81,9 +81,16 @@ def assemble(fin, fout):
             if inst.endswith('.'):
                 uf = True
                 inst = inst[:-1]
+            for i in ['BR', 'B', 'CR', 'C']:
+                if inst.startswith(i):
+                    cc = inst[len(i):].lower()
+                    inst = i
+                    if cc not in CONDITION:
+                        error('{}: unknown condition code `{}`', lineno, cc)
             ops = [i.strip() for i in rest.split(',')]
             if inst not in table:
                 error('Unknown instruction `{}`'.format(inst))
+
             entry = table[inst]
             x = n = 0
             # most instructions
@@ -92,7 +99,12 @@ def assemble(fin, fout):
                 if i in ('imm', 'Location', 'Memory_Flags'):
                     if not ops:
                         error('{}: instruction `{}`: missing operand(s)', lineno, inst, len(entry))
-                    x = x << l | int(ops.pop(0))
+                    try:
+                        x = x << l | int(ops.pop(0), 0)
+                    except ValueError:
+                        error('{}: invalid immediate number', lineno)
+                elif i == 'Condition':
+                    x = x << l | CONDITION[cc]
                 elif i == 'r':
                     if not ops:
                         error('{}: instruction `{}`: missing operand(s)', lineno, inst, len(entry))
