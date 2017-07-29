@@ -108,6 +108,8 @@ def _is_code_pointer(addr):
             return False
         if cmd.itype in (IDA_INAME_TO_ITYPE['ad'], IDA_INAME_TO_ITYPE['sb']) and cmd[0].reg == 29 and cmd[1].reg == 29 and cmd[2].reg == 27:
             return True
+    elif cmd.itype == IDA_INAME_TO_ITYPE['sttd'] and cmd[1].reg == 29 and cmd[1].addr == 0 and cmd[0].reg == 28 and cmd[0].value == 2:
+        return True
     return False
 
 def is_code_pointer(addr):
@@ -280,7 +282,7 @@ class ClemencyProcessor(processor_t):
     instruc_end = len(instruc) + 1
     idphook = None
 
-    codestart = ['\x7a\x01\x03\x00']
+    codestart = ['\x7a\x01\x03\x00', '\x3a\x01\x6b\x01\x50\x00']
     retcodes = ['\x00\x00\x40\x01']
 
     def __init__(self):
@@ -365,6 +367,7 @@ class ClemencyProcessor(processor_t):
             cmd[1].addr = ToSignedInteger(opcode[24:51], 27)
             cmd[1].dtyp = {'s': dt_byte, 'w': dt_word, 't': dt_3byte}[rins.name[2]]
             adjB = opcode[22:24]
+            if adjB > 2: raise DecodingError()
             newname = rins.name + ['', 'i', 'd'][adjB]
             cmd.itype = self.inames[newname]
 
@@ -615,6 +618,10 @@ class ClemencyProcessor(processor_t):
             if self.saved_st:
                 spofs = self.saved_st - get_spd(pfn, self.cmd.ea)
 
+        if abs(spofs) > 0x100000:
+            print 'Suspicious spof found @', hex(self.cmd.ea), ':', hex(spofs)
+            spofs = 0
+
         if spofs != 0:
             self.add_stkpnt(pfn, spofs)
 
@@ -802,6 +809,11 @@ class ClemencyProcessor(processor_t):
         if self.cmd.Op1.type == o_reg and self.cmd.Op1.reg == self.reg_ids['ST'] and self.cmd.Op2.type == o_reg and self.cmd.Op2.reg == self.reg_ids['ST'] and \
            cmd.itype in (self.inames['adi'], self.inames['sbi']):
             return 90
+        elif self.cmd.itype == self.inames['sttd']:
+            if self.cmd[1].reg == self.ireg_ST and self.cmd[1].addr == 0 and self.cmd[0].reg == self.ireg_R28 and self.cmd[0].value == 2:
+                return 100
+            else:
+                return 0
         return 10
 
 
