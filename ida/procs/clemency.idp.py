@@ -541,7 +541,7 @@ class ClemencyProcessor(processor_t):
         if ft & CF_USE4:
             self._emu_operand(cmd[3])
 
-        elif not ft & CF_STOP:
+        if not ft & CF_STOP:
             ua_add_cref(0, cmd.ea + cmd.size, fl_F)
             flow = True
         self.simplify()
