@@ -544,7 +544,7 @@ class ClemencyProcessor(processor_t):
                 if last_record_ml != None:
                     # print "trying to match addi or jalr for lui, cur ea: %08X" % (self.cmd.ea)
                     if self.cmd.itype == self.inames['mh']:
-                        target_offset = toInt((last_record_ml["value"]) + (self.cmd[1].value << 10))
+                        target_offset = toInt((last_record_ml["value"] & ((1 << 10) - 1)) | (self.cmd[1].value << 10))
                         #if (isLoaded(target_offset)):
                         ua_add_dref_autodetermine_type(0, target_offset, dr_R)
                         self.add_auto_resolved_constant_comment(target_offset)
