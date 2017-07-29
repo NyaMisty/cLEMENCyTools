@@ -1,7 +1,7 @@
 # coding=utf-8
 
-import pydevd
-pydevd.settrace('localhost', port=15306, stdoutToServer=True, stderrToServer=True, suspend=False)
+# import pydevd
+# pydevd.settrace('localhost', port=15306, stdoutToServer=True, stderrToServer=True, suspend=False)
 
 from idaapi import *
 from idc import *
@@ -736,12 +736,14 @@ class openrisc_translator_arm:
 
     def translator_cmi(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
-        self.out("cmp %s, #%d" % (rA, cmd[1].value))
+        self.out("ldr W27, =%d" % cmd[1].value)
+        self.out("cmp %s, W27" % rA)
         pass
 
     def translator_cmim(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg,True)
-        self.out("cmp %s, #%d" % (rA, cmd[1].value))
+        self.out("ldr W27, =%d" % cmd[1].value)
+        self.out("cmp %s, W27" % rA)
         pass
 
     def translator_cmm(self, ea, cmd):
@@ -829,7 +831,30 @@ class openrisc_translator_arm:
             rC = self.premap_registers(cmd[2].reg)
         self.out(("udiv %s, %s, %s") % (rA,rB,rC))
         pass
+    '''
+    def translator_dmt(self, ea, cmd):
+        # XXX: Convert to a function call
+        self.out("nop")
+        pass
 
+    def translator_ei(self, ea, cmd):
+        # XXX: ._.
+        self.out("nop")
+        pass
+
+    def translator_di(self, ea, cmd):
+        # XXX: ._.
+        self.out("nop")
+        pass
+
+    def translator_wt(self, ea, cmd):
+        # XXX: ._.
+        self.out("nop")
+
+    def translator_smp(self, ea, cmd):
+        # XXX: Convert to a function call
+        self.out("nop")
+    '''
     def translator_dvf(self, ea, cmd):
         rA = self.premap_float_registers(cmd[0].reg)
         rB = self.premap_float_registers(cmd[1].reg)
@@ -938,7 +963,8 @@ class openrisc_translator_arm:
         StartReg = cmd[0].reg
         RegCount = cmd[0].value + 1
         CurCount = RegCount
-        MemLocation = 0
+        MemLocation = cmd[1].addr * 2
+        if MemLocation > 256 or MemLocation < -256: MemLocation = 0
         while CurCount != 0:
             #Registers[StartReg] = Memory[MemLocation]
             self.out(("ldurh %s, [%s, #%d]") % (self.premap_registers(StartReg),self.premap_registers(cmd[1].reg,True), MemLocation))
@@ -956,7 +982,8 @@ class openrisc_translator_arm:
             StartReg = cmd[0].reg
             RegCount = cmd[0].value + 1
             CurCount = RegCount
-            MemLocation = 0
+            MemLocation = cmd[1].addr * 2
+            if MemLocation > 256 or MemLocation < -256: MemLocation = 0
             while CurCount != 0:
                 # Registers[StartReg] = Memory[MemLocation]
                 self.out(("ldur %s, [%s, #%d]") % (self.premap_registers(StartReg,True), self.premap_registers(cmd[1].reg, True), MemLocation))
@@ -970,7 +997,8 @@ class openrisc_translator_arm:
         StartReg = cmd[0].reg
         RegCount = cmd[0].value + 1
         CurCount = RegCount
-        MemLocation = 0
+        MemLocation = cmd[1].addr * 2
+        if MemLocation > 256 or MemLocation < -256: MemLocation = 0
         while CurCount != 0:
             # Registers[StartReg] = Memory[MemLocation]
             self.out(("ldur %s, [%s, #%d]") % (
@@ -997,7 +1025,7 @@ class openrisc_translator_arm:
         pass
 
     def translator_ldsi(self, ea, cmd):
-        translator_ldis(self, ea, cmd)
+        self.translator_ldis(ea, cmd)
 
     def translator_ldit(self, ea, cmd):
         StartReg = cmd[0].reg
@@ -1016,7 +1044,7 @@ class openrisc_translator_arm:
         pass
 
     def translator_ldti(self, ea, cmd):
-        translator_ldit(self, ea, cmd)
+        self.translator_ldit(ea, cmd)
 
     def translator_ldiw(self, ea, cmd):
         StartReg = cmd[0].reg
@@ -1033,7 +1061,7 @@ class openrisc_translator_arm:
         pass
 
     def translator_ldwi(self, ea, cmd):
-        translator_ldiw(self, ea, cmd)
+        self.translator_ldiw(ea, cmd)
 
     def translator_ldds(self, ea, cmd):
         StartReg = cmd[0].reg
@@ -1050,7 +1078,7 @@ class openrisc_translator_arm:
         pass
 
     def translator_ldsd(self, ea, cmd):
-        translator_ldds(self, ea, cmd)
+        self.translator_ldds(ea, cmd)
 
     def translator_lddt(self, ea, cmd):
         StartReg = cmd[0].reg
@@ -1068,7 +1096,7 @@ class openrisc_translator_arm:
         pass
 
     def translator_ldtd(self, ea, cmd):
-        translator_lddt(self, ea, cmd)
+        self.translator_lddt(ea, cmd)
 
     def translator_lddw(self, ea, cmd):
         StartReg = cmd[0].reg
@@ -1085,7 +1113,7 @@ class openrisc_translator_arm:
         pass
 
     def translator_ldwd(self, ea, cmd):
-        translator_lddw(self, ea, cmd)
+        self.translator_lddw(ea, cmd)
 
     def translator_md(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
@@ -1363,7 +1391,9 @@ class openrisc_translator_arm:
             rA = self.premap_registers(cmd[0].reg)
             rB = self.premap_registers(cmd[1].reg)
         self.out("ldr %s, =%d" % (rA, cmd[2].value))
-        self.out("orr %s, %s, %s" % (rA, rB, cmd[2].value))
+        for i in xrange(32):
+            if cmd[2].value & (1 << i):
+                self.out("orr %s, %s, %s" % (rA, rB, 1 << i))
         pass
 
     def translator_orm(self, ea, cmd):
@@ -1483,7 +1513,7 @@ class openrisc_translator_arm:
             rA = self.premap_registers(cmd[0].reg)
             rB = self.premap_registers(cmd[1].reg)
             rC = self.premap_registers(cmd[2].reg)
-        self.out("sar %s, %s, %s" % (rA, rB, rC))
+        self.out("asr %s, %s, %s" % (rA, rB, rC))
         pass
 
     def translator_sai(self, ea, cmd):
@@ -1505,7 +1535,7 @@ class openrisc_translator_arm:
         rA = self.premap_registers(cmd[0].reg, True)
         rB = self.premap_registers(cmd[1].reg, True)
         rC = self.premap_registers(cmd[2].reg, True)
-        self.out("sar %s, %s, %s" % (rA, rB, rC))
+        self.out("asr %s, %s, %s" % (rA, rB, rC))
         pass
 
     def translator_sb(self, ea, cmd):
@@ -1687,7 +1717,8 @@ class openrisc_translator_arm:
         StartReg = cmd[0].reg
         RegCount = cmd[0].value + 1
         CurCount = RegCount
-        MemLocation = 0
+        MemLocation = cmd[1].addr * 2
+        if MemLocation > 256 or MemLocation < -256: MemLocation = 0
         while CurCount != 0:
             #Registers[StartReg] = Memory[MemLocation]
             self.out(("sturh %s, [%s, #%d]") % (self.premap_registers(StartReg),self.premap_registers(cmd[1].reg,True), MemLocation))
@@ -1700,7 +1731,8 @@ class openrisc_translator_arm:
         StartReg = cmd[0].reg
         RegCount = cmd[0].value + 1
         CurCount = RegCount
-        MemLocation = 0
+        MemLocation = cmd[1].addr * 2
+        if MemLocation > 256 or MemLocation < -256: MemLocation = 0
         while CurCount != 0:
             # Registers[StartReg] = Memory[MemLocation]
             self.out(("stur %s, [%s, #%d]") % (self.premap_registers(StartReg,True), self.premap_registers(cmd[1].reg, True), MemLocation))
@@ -1714,7 +1746,8 @@ class openrisc_translator_arm:
         StartReg = cmd[0].reg
         RegCount = cmd[0].value + 1
         CurCount = RegCount
-        MemLocation = 0
+        MemLocation = cmd[1].addr * 2
+        if MemLocation > 256 or MemLocation < -256: MemLocation = 0
         while CurCount != 0:
             # Registers[StartReg] = Memory[MemLocation]
             self.out(("stur %s, [%s, #%d]") % (
@@ -1741,7 +1774,7 @@ class openrisc_translator_arm:
         pass
 
     def translator_stsi(self, ea, cmd):
-        translator_stis(self, ea, cmd)
+        self.translator_stis(ea, cmd)
 
     def translator_stit(self, ea, cmd):
         StartReg = cmd[0].reg
@@ -1758,7 +1791,7 @@ class openrisc_translator_arm:
         pass
 
     def translator_stti(self, ea, cmd):
-        translator_stit(self, ea, cmd)
+        self.translator_stit(ea, cmd)
 
     def translator_stiw(self, ea, cmd):
         StartReg = cmd[0].reg
@@ -1775,7 +1808,7 @@ class openrisc_translator_arm:
         pass
 
     def translator_stwi(self, ea, cmd):
-        translator_stiw(self, ea, cmd)
+        self.translator_stiw(ea, cmd)
 
     def translator_stds(self, ea, cmd):
         StartReg = cmd[0].reg
@@ -1794,7 +1827,7 @@ class openrisc_translator_arm:
         pass
 
     def translator_stsd(self, ea, cmd):
-        translator_stds(self, ea, cmd)
+        self.translator_stds(ea, cmd)
 
     def translator_stdt(self, ea, cmd):
         if cmd[0].reg == 28 and cmd[1].reg == 29 and cmd[0].value == 2 and cmd[1].value == 0:
@@ -1815,7 +1848,7 @@ class openrisc_translator_arm:
         pass
 
     def translator_sttd(self, ea, cmd):
-        translator_stdt(self, ea, cmd)
+        self.translator_stdt(ea, cmd)
 
     def translator_stdw(self, ea, cmd):
         StartReg = cmd[0].reg
@@ -1834,7 +1867,7 @@ class openrisc_translator_arm:
         pass
 
     def translator_stwd(self, ea, cmd):
-        translator_stdw(self, ea, cmd)
+        self.translator_stdw(ea, cmd)
 
     def translator_xr(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
