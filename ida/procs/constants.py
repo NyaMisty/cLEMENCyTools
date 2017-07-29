@@ -394,7 +394,7 @@ IDA_INSTR_DEF = [
     {'name': 'ori', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Or Immediate    ORI rA, rB, IMM'},
     {'name': 'orm', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Or Multi Reg    ORM rA, rB, rC'},
     {'name': 're', 'feature': CF_STOP, 'cmt': 'Return   RE'},
-    {'name': 'rf', 'feature': CF_USE1 | CF_STOP | CF_CHG1, 'cmt': 'Read Flags   RF rA'},
+    {'name': 'rf', 'feature': CF_USE1 | CF_CHG1, 'cmt': 'Read Flags   RF rA'},
     {'name': 'rl', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Rotate Left  RL rA, rB, rC'},
     {'name': 'rli', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
      'cmt': 'Rotate Left Immediate   RLI rA, rB, IMM'},
