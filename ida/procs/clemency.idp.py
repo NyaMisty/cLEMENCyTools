@@ -197,7 +197,7 @@ class ClemencyProcessor(processor_t):
         "a_ascii": ".ascii",
         "a_byte": ".byte",
         "a_word": ".word",
-        "a_3byte": ".tribyte",
+        "a_3byte": ".tri",
         "a_bss": "dfs %s",
         "a_seg": "seg",
         "a_curip": "PC",
@@ -238,6 +238,7 @@ class ClemencyProcessor(processor_t):
         self._init_registers()
         self.last_ml_array = [{'reg': -1, 'value': 0}]
         self.last_mh_array = [{'reg': -1, 'value': 0}]
+        self.last_r27 = None
 
     def _init_instructions(self):
         self.inames = {}
@@ -504,6 +505,8 @@ class ClemencyProcessor(processor_t):
                         #if (isLoaded(target_offset)):
                         ua_add_dref(0, target_offset, dr_R)
                         self.add_auto_resolved_constant_comment(target_offset)
+                        if self.cmd[0].reg == self.ireg_R27:
+                            self.last_r27 = (target_offset, self.cmd.ea)
 
 
     # 这个函数不用动哒
@@ -531,6 +534,21 @@ class ClemencyProcessor(processor_t):
             spofs = self.cmd[2].value
             if self.cmd.itype == self.itype_sbi:
                 spofs = -spofs
+
+        if self.cmd.itype in (self.itype_ad, self.itype_sb) and \
+           self.cmd[0].reg == self.ireg_ST and \
+           self.cmd[1].reg == self.ireg_ST:
+            if self.cmd[2].reg != self.ireg_R27:
+                print 'Unknown stack adjustment @', hex(self.cmd.ea)
+            else:
+                if self.last_r27 is not None and self.last_r27[1] == self.cmd.ea - 3:
+                    spofs = self.last_r27[0]
+                else:
+                    last_record_ml = self.get_ml_array_object(cmd[2].reg)
+                    if last_record_ml:
+                        spofs = last_record_ml['value']
+            if self.cmd.itype == self.itype_sbi:
+                spofs = -spofs 
 
         # load/store decrease
         elif self.cmd.itype in (self.itype_ldsd, self.itype_stsd) and self.cmd[1].reg == self.ireg_ST:
