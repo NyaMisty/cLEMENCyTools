@@ -68,12 +68,13 @@ class openrisc_translator_arm:
 
     # 如果生成的汇编文件有结尾的话加在这里
     def printAsmFooter(self):
-        self.out("  END")
+        #self.out("  END")
         pass
 
     # 每一个区段自己的header
     def printSegHeader(self,ea,attr):
-        segHeader = ".section   "
+        segHeader = ".text"
+        """segHeader = ".section   "
         segHeader += SegName(ea)
         segHeader += ""
         if attr & SEGPERM_EXEC:
@@ -88,7 +89,7 @@ class openrisc_translator_arm:
             segHeader += ""
         else:
             print "Warning: seg at 0x%X named %s does not have a read permission, please check!" % (ea, SegName(ea))
-        segHeader += ("'              @ Segment at %0"+ str(self.xlen * 2) +"X %s") % (ea, SegName(ea))
+        segHeader += ("'              @ Segment at %0"+ str(self.xlen * 2) +"X %s") % (ea, SegName(ea))"""
         self.out(segHeader)
     #获取data中的offset
     def calcOffsetTargetAndBase(self, ea, value):
@@ -237,6 +238,8 @@ class openrisc_translator_arm:
                 self.out(curline, "")
                 ########here!! dispatch the translator!!!
                 mnem = self.cleanMnem(mnem)
+                if mnem[-1:] == "_":
+                    mnem = mnem[:-1]
                 try:
                     self.auto_extend = False
                     getattr(self, 'translator_%s' % mnem)(ea,cmd)
@@ -305,7 +308,7 @@ class openrisc_translator_arm:
         "R15", "R16", "R17", "R18", "R19",
         "R20", "R21", "R22", "R23", "R24",
         "R25", "R26", "R27", "R28", "ST",
-        "RA", "PC", "FL",
+        "RA", "PC",
         "CS", "DS"
     ]
 
@@ -315,12 +318,12 @@ class openrisc_translator_arm:
         "X10", "X11", "X12", "X13", "X14",
         "X15", "X16", "X17", "X18", "X19",
         "X20", "X21", "X22", "X23", "X24",
-        "X25", "X26", "X27", "X28", "SP",
-        "X30", "", "X29",
+        "X25", "X26", "X27", "X29", "SP",
+        "X30", "",
         "CS", "DS"
     ]
-    temp_register = "W23"
-    temp_register_long = "X23"
+    temp_register = "W28"
+    temp_register_long = "X28"
     """temp_register_addr存储多出来的寄存器的地址
     #temp_register_gp用于处理gp寄存器的使用
     #temp_register 存储多出来寄存器的值
@@ -351,13 +354,15 @@ class openrisc_translator_arm:
             isLong = True
         if self.reg_names_target[ori_reg] == "":
             raise NoCorrespondingRegError()
+        if self.reg_names_target[ori_reg] == "SP":
+            self.auto_extend = True
+            return "SP"
+        if self.reg_names_target[ori_reg] == "X29":
+            self.auto_extend = True
+            return "X29"
         if self.reg_names_target[ori_reg][0] == "X" and not isLong:
             return "W" + self.reg_names_target[ori_reg][1:]
-        if self.reg_names_target[ori_reg] == "SP":
-            if isLong:
-                return "SP"
-            else:
-                return "WSP"
+
         return self.reg_names_target[ori_reg]
     def premap_float_registers(self,ori_reg,isLong=False):
         if self.reg_names_target[ori_reg] == "":
@@ -378,20 +383,44 @@ class openrisc_translator_arm:
     def translator_ad(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         rC = self.premap_registers(cmd[2].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+            rC = self.premap_registers(cmd[2].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+            rC = self.premap_registers(cmd[2].reg)
         self.out("add %s, %s, %s" % (rA , rB, rC))
         pass
 
     def translator_adc(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         rC = self.premap_registers(cmd[2].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+            rC = self.premap_registers(cmd[2].reg)
         self.out("add %s, %s, %s" % (rA, rB, rC))
         pass
 
     def translator_adci(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         self.out("add %s, %s, #%d" % (rA, rB, cmd[2].value))
         pass
 
@@ -425,6 +454,9 @@ class openrisc_translator_arm:
     def translator_adi(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         self.out("add %s, %s, #%d" % (rA, rB, cmd[2].value))
         pass
 
@@ -444,13 +476,23 @@ class openrisc_translator_arm:
     def translator_an(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         rC = self.premap_registers(cmd[2].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+            rC = self.premap_registers(cmd[2].reg)
         self.out("and %s, %s, %s" % (rA, rB, rC))
         pass
 
     def translator_ani(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         self.out("and %s, %s, #%d" % (rA, rB, cmd[2].value))
         pass
 
@@ -524,6 +566,9 @@ class openrisc_translator_arm:
     def translator_bf(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         self.out("neg %s, %s" % (rA,rB))
         pass
 
@@ -534,63 +579,63 @@ class openrisc_translator_arm:
         pass
 
     def translator_brn(self, ea, cmd):
-        self.out("bne %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("bne %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_bre(self, ea, cmd):
-        self.out("beq %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("beq %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_brl(self, ea, cmd):
-        self.out("blo %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("blo %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_brle(self, ea, cmd):
-        self.out("bls %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("bls %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_brg(self, ea, cmd):
-        self.out("bhi %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("bhi %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_brge(self, ea, cmd):
-        self.out("bhs %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("bhs %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_brno(self, ea, cmd):
-        self.out("bvc %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("bvc %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_bro(self, ea, cmd):
-        self.out("bvs %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("bvs %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_brns(self, ea, cmd):
-        self.out("bpl %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("bpl %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_brs(self, ea, cmd):
-        self.out("bmi %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("bmi %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_brsl(self, ea, cmd):
-        self.out("blt %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("blt %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_brsle(self, ea, cmd):
-        self.out("ble %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("ble %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_brsg(self, ea, cmd):
-        self.out("bgt %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("bgt %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_brsge(self, ea, cmd):
-        self.out("bge %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("bge %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_br(self, ea, cmd):
-        self.out("br %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("br %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_bra(self, ea, cmd):
@@ -672,6 +717,9 @@ class openrisc_translator_arm:
     def translator_cm(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         self.out("cmp %s, %s" % (rA, rB))
         pass
 
@@ -688,12 +736,12 @@ class openrisc_translator_arm:
         pass
 
     def translator_cmi(self, ea, cmd):
-        rA = self.premap_float_registers(cmd[0].reg)
+        rA = self.premap_registers(cmd[0].reg)
         self.out("cmp %s, #%d" % (rA, cmd[1].value))
         pass
 
     def translator_cmim(self, ea, cmd):
-        rA = self.premap_float_registers(cmd[0].reg,True)
+        rA = self.premap_registers(cmd[0].reg,True)
         self.out("cmp %s, #%d" % (rA, cmd[1].value))
         pass
 
@@ -704,63 +752,63 @@ class openrisc_translator_arm:
         pass
 
     def translator_crn(self, ea, cmd):
-        self.out("blne %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("blne %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_cre(self, ea, cmd):
-        self.out("bleq %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("bleq %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_crl(self, ea, cmd):
-        self.out("bllo %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("bllo %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_crle(self, ea, cmd):
-        self.out("blls %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("blls %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_crg(self, ea, cmd):
-        self.out("blhi %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("blhi %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_crge(self, ea, cmd):
-        self.out("blhs %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("blhs %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_crno(self, ea, cmd):
-        self.out("blvc %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("blvc %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_cro(self, ea, cmd):
-        self.out("blvs %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("blvs %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_crns(self, ea, cmd):
-        self.out("blpl %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("blpl %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_crs(self, ea, cmd):
-        self.out("blmi %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("blmi %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_crsl(self, ea, cmd):
-        self.out("bllt %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("bllt %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_crsle(self, ea, cmd):
-        self.out("blle %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("blle %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_crsg(self, ea, cmd):
-        self.out("blgt %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("blgt %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_crsge(self, ea, cmd):
-        self.out("blge %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("blge %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_cr(self, ea, cmd):
-        self.out("blr %s" % (self.premap_registers(cmd[0].reg)))
+        self.out("blr %s" % (self.premap_registers(cmd[0].reg,True)))
         pass
 
     def translator_dbrk(self, ea, cmd):
@@ -772,7 +820,14 @@ class openrisc_translator_arm:
     def translator_dv(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         rC = self.premap_registers(cmd[2].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+            rC = self.premap_registers(cmd[2].reg)
         self.out(("udiv %s, %s, %s") % (rA,rB,rC))
         pass
 
@@ -793,25 +848,35 @@ class openrisc_translator_arm:
     def translator_dvi(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
-        self.out(("udiv %s, %s, #%d") % (rA, rB, cmd[2].value))
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+        self.out("ldr %s, =%d" % (self.temp_register, cmd[2].value))
+        self.out(("udiv %s, %s, %s") % (rA, rB, self.temp_register))
         pass
 
     def translator_dvim(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg,True)
         rB = self.premap_registers(cmd[1].reg,True)
-        self.out(("udiv %s, %s, #%d") % (rA, rB, cmd[2].value))
+        self.out("ldr %s, =%d" % (self.temp_register_long, cmd[2].value))
+        self.out(("udiv %s, %s, %s") % (rA, rB, self.temp_register_long))
         pass
 
     def translator_dvis(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
-        self.out(("sdiv %s, %s, #%d") % (rA, rB, cmd[2].value))
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+        self.out("ldr %s, =%d" % (self.temp_register,cmd[2].value))
+        self.out(("sdiv %s, %s, %s") % (rA, rB, self.temp_register))
         pass
 
     def translator_dvism(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg,True)
         rB = self.premap_registers(cmd[1].reg,True)
-        self.out(("sdiv %s, %s, #%d") % (rA, rB, cmd[2].value))
+        self.out("ldr %s, =%d" % (self.temp_register_long, cmd[2].value))
+        self.out(("sdiv %s, %s, #%d") % (rA, rB, self.temp_register_long))
         pass
 
     def translator_dvm(self, ea, cmd):
@@ -824,7 +889,14 @@ class openrisc_translator_arm:
     def translator_dvs(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         rC = self.premap_registers(cmd[2].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+            rC = self.premap_registers(cmd[2].reg)
         self.out(("sdiv %s, %s, %s") % (rA, rB, rC))
         pass
 
@@ -848,7 +920,7 @@ class openrisc_translator_arm:
         pass
 
     def translator_ht(self, ea, cmd):
-        self.out("bkpt")
+        self.out("b %s" % (self.getRealName(ea)))
         pass
 
     def translator_itf(self, ea, cmd):
@@ -877,17 +949,22 @@ class openrisc_translator_arm:
         pass
 
     def translator_ldt(self, ea, cmd):
-        StartReg = cmd[0].reg
-        RegCount = cmd[0].value + 1
-        CurCount = RegCount
-        MemLocation = 0
-        while CurCount != 0:
-            # Registers[StartReg] = Memory[MemLocation]
-            self.out(("ldur %s, [%s, #%d]") % (self.premap_registers(StartReg,True), self.premap_registers(cmd[1].reg, True), MemLocation))
-            MemLocation += 6
-            StartReg = (StartReg + 1) % 32
-            CurCount = CurCount - 1
-        # TODO
+        if cmd[0].reg == 28 and cmd[1].reg == 28 and cmd[0].value == 2 and cmd[1].value == 0:
+            self.out("mov sp, x29")
+            self.out("ldp x29,x30, [x29, #0]")
+            pass
+        else:
+            StartReg = cmd[0].reg
+            RegCount = cmd[0].value + 1
+            CurCount = RegCount
+            MemLocation = 0
+            while CurCount != 0:
+                # Registers[StartReg] = Memory[MemLocation]
+                self.out(("ldur %s, [%s, #%d]") % (self.premap_registers(StartReg,True), self.premap_registers(cmd[1].reg, True), MemLocation))
+                MemLocation += 6
+                StartReg = (StartReg + 1) % 32
+                CurCount = CurCount - 1
+            # TODO
         pass
 
     def translator_ldw(self, ea, cmd):
@@ -917,7 +994,7 @@ class openrisc_translator_arm:
             MemLocation += 2
             StartReg = (StartReg + 1) % 32
             CurCount = CurCount - 1
-        self.out("add %s, #%d" % (Temp, MemLocation))
+        #self.out("add %s, %s, #%d" % (Temp, Temp, MemLocation))
         pass
 
     def translator_ldit(self, ea, cmd):
@@ -932,6 +1009,7 @@ class openrisc_translator_arm:
             MemLocation += 6
             StartReg = (StartReg + 1) % 32
             CurCount = CurCount - 1
+        #self.out("add %s, %s, #%d" % (Temp, Temp, MemLocation))
         # TODO
         pass
 
@@ -995,9 +1073,10 @@ class openrisc_translator_arm:
     def translator_md(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
-        rC = self.premap_registers(cmd[2].reg)
         self.out("udiv %s, %s, %s" % (rA, rB, rC))
-        self.out("mls %s, %s, %s, %s" % (rA, rA, rC, rB))
+        rAE = self.premap_registers(cmd[0].reg,True)
+        rB = self.premap_registers(cmd[1].reg, True)
+        self.out("umsubl %s, %s, %s, %s" % (rAE, rA, rC, rB))
         pass
 
     def translator_mdf(self, ea, cmd):
@@ -1022,7 +1101,9 @@ class openrisc_translator_arm:
         rC = self.temp_register
         self.out("ldr %s,=%d" % (rC,cmd[2].value))
         self.out("udiv %s, %s, %s" % (rA, rB, rC))
-        self.out("mls %s, %s, %s, %s" % (rA, rA, rC, rB))
+        rAE = self.premap_registers(cmd[0].reg, True)
+        rB = self.premap_registers(cmd[1].reg, True)
+        self.out("umsubl %s, %s, %s, %s" % (rAE, rA, rC, rB))
         pass
 
     def translator_mdim(self, ea, cmd):
@@ -1031,7 +1112,8 @@ class openrisc_translator_arm:
         rC = self.temp_register
         self.out("ldr %s,=%d" % (rC, cmd[2].value))
         self.out("udiv %s, %s, %s" % (rA, rB, rC))
-        self.out("mls %s, %s, %s, %s" % (rA, rA, rC, rB))
+        rAne = self.premap_registers(cmd[0].reg)
+        self.out("umsubl %s, %s, %s, %s" % (rA, rAne, rC, rB))
         pass
 
     def translator_mdis(self, ea, cmd):
@@ -1040,7 +1122,9 @@ class openrisc_translator_arm:
         rC = self.temp_register
         self.out("ldr %s,=%d" % (rC, cmd[2].value))
         self.out("sdiv %s, %s, %s" % (rA, rB, rC))
-        self.out("mls %s, %s, %s, %s" % (rA, rA, rC, rB))
+        rAE = self.premap_registers(cmd[0].reg, True)
+        rB = self.premap_registers(cmd[1].reg,True)
+        self.out("smsubl %s, %s, %s, %s" % (rAE, rA, rC, rB))
         pass
 
     def translator_mdism(self, ea, cmd):
@@ -1049,7 +1133,8 @@ class openrisc_translator_arm:
         rC = self.temp_register
         self.out("ldr %s,=%d" % (rC, cmd[2].value))
         self.out("sdiv %s, %s, %s" % (rA, rB, rC))
-        self.out("mls %s, %s, %s, %s" % (rA, rA, rC, rB))
+        rAne = self.premap_registers(cmd[0].reg, True)
+        self.out("smsubl %s, %s, %s, %s" % (rA, rAne, rC, rB))
         pass
 
     def translator_mdm(self, ea, cmd):
@@ -1057,7 +1142,9 @@ class openrisc_translator_arm:
         rB = self.premap_registers(cmd[1].reg,True)
         rC = self.premap_registers(cmd[2].reg,True)
         self.out("udiv %s, %s, %s" % (rA, rB, rC))
-        self.out("mls %s, %s, %s, %s" % (rA, rA, rC, rB))
+        rAne = self.premap_registers(cmd[0].reg)
+        rCne = self.premap_registers(cmd[2].reg)
+        self.out("smsubl %s, %s, %s, %s" % (rA, rAne, rCne, rB))
         pass
 
     def translator_mds(self, ea, cmd):
@@ -1065,7 +1152,9 @@ class openrisc_translator_arm:
         rB = self.premap_registers(cmd[1].reg)
         rC = self.premap_registers(cmd[2].reg)
         self.out("sdiv %s, %s, %s" % (rA, rB, rC))
-        self.out("mls %s, %s, %s, %s" % (rA, rA, rC, rB))
+        rAE = self.premap_registers(cmd[0].reg, True)
+        rB = self.premap_registers(cmd[1].reg,True)
+        self.out("smsubl %s, %s, %s, %s" % (rAE, rA, rC, rB))
         pass
 
     def translator_mdsm(self, ea, cmd):
@@ -1073,7 +1162,9 @@ class openrisc_translator_arm:
         rB = self.premap_registers(cmd[1].reg,True)
         rC = self.premap_registers(cmd[2].reg,True)
         self.out("sdiv %s, %s, %s" % (rA, rB, rC))
-        self.out("mls %s, %s, %s, %s" % (rA, rA, rC, rB))
+        rAne = self.premap_registers(cmd[0].reg, True)
+        rC = self.premap_registers(cmd[2].reg)
+        self.out("smsubl %s, %s, %s, %s" % (rA, rAne, rC, rB))
         pass
 
     def translator_mh(self, ea, cmd):
@@ -1097,7 +1188,14 @@ class openrisc_translator_arm:
     def translator_mu(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         rC = self.premap_registers(cmd[2].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+            rC = self.premap_registers(cmd[2].reg)
         self.out("mul %s, %s, %s" % (rA, rB, rC))
         pass
 
@@ -1118,6 +1216,9 @@ class openrisc_translator_arm:
     def translator_mui(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         self.out("ldr %s, =%d" % (rA, cmd[2].value))
         self.out("mul %s, %s, %s" % (rA, rB, self.temp_register))
         pass
@@ -1132,6 +1233,9 @@ class openrisc_translator_arm:
     def translator_muis(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         self.out("ldr %s, =%d" % (rA, cmd[2].value))
         self.out("mul %s, %s, %s" % (rA, rB, self.temp_register))
         pass
@@ -1153,7 +1257,14 @@ class openrisc_translator_arm:
     def translator_mus(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         rC = self.premap_registers(cmd[2].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+            rC = self.premap_registers(cmd[2].reg)
         self.out("mul %s, %s, %s" % (rA, rB, rC))
         pass
 
@@ -1167,6 +1278,9 @@ class openrisc_translator_arm:
     def translator_ng(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         self.out("neg %s, %s" % (rA, rB))
         pass
 
@@ -1191,6 +1305,9 @@ class openrisc_translator_arm:
     def translator_nt(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         self.out("mvn %s, %s" % (rA, rB))
         pass
 
@@ -1203,13 +1320,26 @@ class openrisc_translator_arm:
     def translator_or(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         rC = self.premap_registers(cmd[2].reg)
-        self.out("orr %s, %s, %s" % (rA, rB, rC))
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+            rC = self.premap_registers(cmd[2].reg)
+        if cmd[1].reg == cmd[2].reg:
+            self.out("mov %s, %s" % (rA, rB))
+        else:
+            self.out("orr %s, %s, %s" % (rA, rB, rC))
         pass
 
     def translator_ori(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         self.out("ldr %s, =%d" % (rA, cmd[2].value))
         self.out("orr %s, %s, %s" % (rA, rB, cmd[2].value))
         pass
@@ -1218,7 +1348,10 @@ class openrisc_translator_arm:
         rA = self.premap_registers(cmd[0].reg, True)
         rB = self.premap_registers(cmd[1].reg, True)
         rC = self.premap_registers(cmd[2].reg, True)
-        self.out("orr %s, %s, %s" % (rA, rB, rC))
+        if cmd[1].reg == cmd[2].reg:
+            self.out("orr %s, %s" % (rA, rB))
+        else:
+            self.out("orr %s, %s, %s" % (rA, rB, rC))
         pass
 
     def translator_re(self, ea, cmd):
@@ -1228,27 +1361,45 @@ class openrisc_translator_arm:
     def translator_rl(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         rC = self.premap_registers(cmd[2].reg)
-        self.out("rol %s, %s, %s" % (rA, rB, rC))
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+            rC = self.premap_registers(cmd[2].reg)
+        self.out("mov %s, 32" % (self.temp_register))
+        self.out("sub %s, %s, %s" % (self.temp_register, self.temp_register, rC))
+        self.out("ror %s, %s, %s" % (rA, rB, self.temp_register))
         pass
 
     def translator_rli(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
-        self.out("rol %s, %s, #%d" % (rA, rB, cmd[2].value))
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+        self.out("mov %s, 32" % (self.temp_register))
+        self.out("sub %s, %s, #%d" % (self.temp_register, self.temp_register, cmd[2].value))
+        self.out("ror %s, %s, %s" % (rA, rB, self.temp_register))
         pass
 
     def translator_rlim(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg,True)
         rB = self.premap_registers(cmd[1].reg,True)
-        self.out("rol %s, %s, #%d" % (rA, rB, cmd[2].value))
+        self.out("mov %s, 32" % (self.temp_register_long))
+        self.out("sub %s, %s, #%d" % (self.temp_register_long, self.temp_register_long, cmd[2].value))
+        self.out("ror %s, %s, %s" % (rA, rB, self.temp_register_long))
         pass
 
     def translator_rlm(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg,True)
         rB = self.premap_registers(cmd[1].reg,True)
         rC = self.premap_registers(cmd[2].reg,True)
-        self.out("rol %s, %s, %s" % (rA, rB, rC))
+        self.out("mov %s, 32" % (self.temp_register_long))
+        self.out("sub %s, %s, %s" % (self.temp_register_long, self.temp_register_long, rC))
+        self.out("ror %s, %s, %s" % (rA, rB, self.temp_register_long))
         pass
 
     def translator_rnd(self, ea, cmd):
@@ -1266,13 +1417,23 @@ class openrisc_translator_arm:
     def translator_rr(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         rC = self.premap_registers(cmd[2].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+            rC = self.premap_registers(cmd[2].reg)
         self.out("ror %s, %s, %s" % (rA, rB, rC))
         pass
 
     def translator_rri(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         self.out("ror %s, %s, #%d" % (rA, rB, cmd[2].value))
         pass
 
@@ -1292,13 +1453,23 @@ class openrisc_translator_arm:
     def translator_sa(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         rC = self.premap_registers(cmd[2].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+            rC = self.premap_registers(cmd[2].reg)
         self.out("sar %s, %s, %s" % (rA, rB, rC))
         pass
 
     def translator_sai(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         self.out("ror %s, %s, #%d" % (rA, rB, cmd[2].value))
         pass
 
@@ -1318,20 +1489,37 @@ class openrisc_translator_arm:
     def translator_sb(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         rC = self.premap_registers(cmd[2].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+            rC = self.premap_registers(cmd[2].reg)
         self.out("sub %s, %s, %s" % (rA, rB, rC))
         pass
 
     def translator_sbc(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         rC = self.premap_registers(cmd[2].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+            rC = self.premap_registers(cmd[2].reg)
         self.out("sub %s, %s, %s" % (rA, rB, rC))
         pass
 
     def translator_sbci(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         self.out("ldr %s,=%d" % (self.temp_register,cmd[2].value))
         self.out("sub %s, %s, %s" % (rA, rB, self.temp_register))
         pass
@@ -1367,6 +1555,9 @@ class openrisc_translator_arm:
     def translator_sbi(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         self.out("ldr %s,=%d" % (self.temp_register, cmd[2].value))
         self.out("sub %s, %s, %s" % (rA, rB, self.temp_register))
         pass
@@ -1388,6 +1579,9 @@ class openrisc_translator_arm:
     def translator_ses(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         self.out("sxth %s, %s" % (rA, rB))
         pass
 
@@ -1398,53 +1592,73 @@ class openrisc_translator_arm:
     def translator_sl(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         rC = self.premap_registers(cmd[2].reg)
-        self.out("shl %s, %s, %s" % (rA, rB, rC))
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+            rC = self.premap_registers(cmd[2].reg)
+        self.out("lsl %s, %s, %s" % (rA, rB, rC))
         pass
 
     def translator_sli(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
-        self.out("shl %s, %s, #%d" % (rA, rB, cmd[2].value))
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+        self.out("lsl %s, %s, #%d" % (rA, rB, cmd[2].value))
         pass
 
     def translator_slim(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg,True)
         rB = self.premap_registers(cmd[1].reg,True)
-        self.out("shl %s, %s, #%d" % (rA, rB, cmd[2].value))
+        self.out("lsl %s, %s, #%d" % (rA, rB, cmd[2].value))
         pass
 
     def translator_slm(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg,True)
         rB = self.premap_registers(cmd[1].reg,True)
         rC = self.premap_registers(cmd[2].reg,True)
-        self.out("shl %s, %s, %s" % (rA, rB, rC))
+        self.out("lsl %s, %s, %s" % (rA, rB, rC))
         pass
 
     def translator_sr(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         rC = self.premap_registers(cmd[2].reg)
-        self.out("shr %s, %s, %s" % (rA, rB, rC))
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+            rC = self.premap_registers(cmd[2].reg)
+        self.out("lsr %s, %s, %s" % (rA, rB, rC))
         pass
 
     def translator_sri(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
-        self.out("shl %s, %s, #%d" % (rA, rB, cmd[2].value))
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+        self.out("lsl %s, %s, #%d" % (rA, rB, cmd[2].value))
         pass
 
     def translator_srim(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg,True)
         rB = self.premap_registers(cmd[1].reg,True)
-        self.out("shl %s, %s, #%d" % (rA, rB, cmd[2].value))
+        self.out("lsl %s, %s, #%d" % (rA, rB, cmd[2].value))
         pass
 
     def translator_srm(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg,True)
         rB = self.premap_registers(cmd[1].reg,True)
         rC = self.premap_registers(cmd[2].reg,True)
-        self.out("shr %s, %s, %s" % (rA, rB, rC))
+        self.out("lsr %s, %s, %s" % (rA, rB, rC))
         pass
 
     def translator_sts(self, ea, cmd):
@@ -1501,7 +1715,7 @@ class openrisc_translator_arm:
             MemLocation += 2
             StartReg = (StartReg + 1) % 32
             CurCount = CurCount - 1
-        self.out("add %s, #%d" % (Temp, MemLocation))
+        self.out("add %s, %s, #%d" % (Temp, Temp, MemLocation))
         pass
 
     def translator_stit(self, ea, cmd):
@@ -1547,17 +1761,20 @@ class openrisc_translator_arm:
         pass
 
     def translator_stdt(self, ea, cmd):
-        StartReg = cmd[0].reg
-        RegCount = cmd[0].value + 1
-        CurCount = RegCount
-        MemLocation = 0 - CurCount*3
-        while CurCount != 0:
-            # Registers[StartReg] = Memory[MemLocation]
-            self.out(("stur %s, [%s, #%d]") % (
-                self.premap_registers(StartReg,True), self.premap_registers(cmd[1].reg, True), MemLocation))
-            MemLocation += 6
-            StartReg = (StartReg + 1) % 32
-            CurCount = CurCount - 1
+        if cmd[0].reg == 28 and cmd[1].reg == 29 and cmd[0].value == 2 and cmd[1].value == 0:
+            self.out("stp x29, x30, [SP,#0]")
+        else:
+            StartReg = cmd[0].reg
+            RegCount = cmd[0].value + 1
+            CurCount = RegCount
+            MemLocation = 0 - CurCount*3
+            while CurCount != 0:
+                # Registers[StartReg] = Memory[MemLocation]
+                self.out(("stur %s, [%s, #%d]") % (
+                    self.premap_registers(StartReg,True), self.premap_registers(cmd[1].reg, True), MemLocation))
+                MemLocation += 6
+                StartReg = (StartReg + 1) % 32
+                CurCount = CurCount - 1
         pass
 
     def translator_stdw(self, ea, cmd):
@@ -1577,14 +1794,24 @@ class openrisc_translator_arm:
     def translator_xr(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         rC = self.premap_registers(cmd[2].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+            rC = self.premap_registers(cmd[2].reg)
         self.out("eor %s, %s, %s" % (rA, rB, rC))
         pass
 
     def translator_xri(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
-        self.out("shl %s, %s, #%d" % (rA, rB, cmd[2].value))
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
+        self.out("lsl %s, %s, #%d" % (rA, rB, cmd[2].value))
         pass
 
     def translator_xrm(self, ea, cmd):
@@ -1597,6 +1824,9 @@ class openrisc_translator_arm:
     def translator_zes(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        if self.auto_extend:
+            rA = self.premap_registers(cmd[0].reg)
+            rB = self.premap_registers(cmd[1].reg)
         self.out("uxth %s, %s" % (rA, rB))
         pass
 
