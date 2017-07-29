@@ -996,6 +996,9 @@ class openrisc_translator_arm:
         #self.out("add %s, %s, #%d" % (Temp, Temp, MemLocation))
         pass
 
+    def translator_ldsi(self, ea, cmd):
+        translator_ldis(self, ea, cmd)
+
     def translator_ldit(self, ea, cmd):
         StartReg = cmd[0].reg
         RegCount = cmd[0].value + 1
@@ -1012,6 +1015,9 @@ class openrisc_translator_arm:
         # TODO
         pass
 
+    def translator_ldti(self, ea, cmd):
+        translator_ldit(self, ea, cmd)
+
     def translator_ldiw(self, ea, cmd):
         StartReg = cmd[0].reg
         RegCount = cmd[0].value + 1
@@ -1026,6 +1032,9 @@ class openrisc_translator_arm:
             CurCount = CurCount - 1
         pass
 
+    def translator_ldwi(self, ea, cmd):
+        translator_ldiw(self, ea, cmd)
+
     def translator_ldds(self, ea, cmd):
         StartReg = cmd[0].reg
         RegCount = cmd[0].value + 1
@@ -1039,6 +1048,9 @@ class openrisc_translator_arm:
             StartReg = (StartReg + 1) % 32
             CurCount = CurCount - 1
         pass
+
+    def translator_ldsd(self, ea, cmd):
+        translator_ldds(self, ea, cmd)
 
     def translator_lddt(self, ea, cmd):
         StartReg = cmd[0].reg
@@ -1055,6 +1067,9 @@ class openrisc_translator_arm:
         # TODO
         pass
 
+    def translator_ldtd(self, ea, cmd):
+        translator_lddt(self, ea, cmd)
+
     def translator_lddw(self, ea, cmd):
         StartReg = cmd[0].reg
         RegCount = cmd[0].value + 1
@@ -1068,6 +1083,9 @@ class openrisc_translator_arm:
             StartReg = (StartReg + 1) % 32
             CurCount = CurCount - 1
         pass
+
+    def translator_ldwd(self, ea, cmd):
+        translator_lddw(self, ea, cmd)
 
     def translator_md(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
@@ -1722,6 +1740,9 @@ class openrisc_translator_arm:
         self.out("add %s, %s, #%d" % (Temp, Temp, MemLocation))
         pass
 
+    def translator_stsi(self, ea, cmd):
+        translator_stis(self, ea, cmd)
+
     def translator_stit(self, ea, cmd):
         StartReg = cmd[0].reg
         RegCount = cmd[0].value + 1
@@ -1736,6 +1757,9 @@ class openrisc_translator_arm:
             CurCount = CurCount - 1
         pass
 
+    def translator_stti(self, ea, cmd):
+        translator_stit(self, ea, cmd)
+
     def translator_stiw(self, ea, cmd):
         StartReg = cmd[0].reg
         RegCount = cmd[0].value + 1
@@ -1749,6 +1773,9 @@ class openrisc_translator_arm:
             StartReg = (StartReg + 1) % 32
             CurCount = CurCount - 1
         pass
+
+    def translator_stwi(self, ea, cmd):
+        translator_stiw(self, ea, cmd)
 
     def translator_stds(self, ea, cmd):
         StartReg = cmd[0].reg
@@ -1765,6 +1792,9 @@ class openrisc_translator_arm:
         self.out(("sub %s, %s, #%d") % (
         self.premap_registers(cmd[1].reg, True), self.premap_registers(cmd[1].reg, True), RegCount))
         pass
+
+    def translator_stsd(self, ea, cmd):
+        translator_stds(self, ea, cmd)
 
     def translator_stdt(self, ea, cmd):
         if cmd[0].reg == 28 and cmd[1].reg == 29 and cmd[0].value == 2 and cmd[1].value == 0:
@@ -1784,6 +1814,9 @@ class openrisc_translator_arm:
             self.out(("sub %s, %s, #%d") % (self.premap_registers(cmd[1].reg, True), self.premap_registers(cmd[1].reg, True),RegCount*3))
         pass
 
+    def translator_sttd(self, ea, cmd):
+        translator_stdt(self, ea, cmd)
+
     def translator_stdw(self, ea, cmd):
         StartReg = cmd[0].reg
         RegCount = cmd[0].value + 1
@@ -1799,6 +1832,9 @@ class openrisc_translator_arm:
         self.out(("sub %s, %s, #%d") % (
         self.premap_registers(cmd[1].reg, True), self.premap_registers(cmd[1].reg, True), RegCount * 2))
         pass
+
+    def translator_stwd(self, ea, cmd):
+        translator_stdw(self, ea, cmd)
 
     def translator_xr(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
