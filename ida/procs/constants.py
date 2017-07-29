@@ -464,7 +464,7 @@ IDA_INSTR_DEF = [
     {'name': 'stw', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
      'cmt': 'Store Word STWm rA, [rB + Offset, RegCount] (rB not modified)'},
 
-        {'name': 'stds', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
+    {'name': 'stsd', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
      'cmt': 'Store Single   STSm rA, [rB + Offset, RegCount] (rB substracted)'},
     {'name': 'sttd', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
      'cmt': 'Store Tri   STTm rA, [rB + Offset, RegCount] (rB substracted)'},
@@ -472,7 +472,7 @@ IDA_INSTR_DEF = [
      'cmt': 'Store Word STWm rA, [rB + Offset, RegCount] (rB substracted)'},
 
     {'name': 'stsi', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
-     'cmt': 'Store Single   STSm rA, [rB + Offset, RegCount] '},
+     'cmt': 'Store Single   STSm rA, [rB + Offset, RegCount] (rB added)'},
     {'name': 'stti', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,
      'cmt': 'Store Tri   STTm rA, [rB + Offset, RegCount] (rB added)'},
     {'name': 'stwi', 'feature': CF_USE1 | CF_USE2 | CF_CHG1 | CF_CHG2,

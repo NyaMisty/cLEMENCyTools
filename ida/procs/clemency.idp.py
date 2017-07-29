@@ -524,12 +524,29 @@ class ClemencyProcessor(processor_t):
         if not pfn:
            return
         spofs = 0
+        # adi, sbi
         if self.cmd.itype in (self.itype_adi, self.itype_sbi) and \
            self.cmd[0].reg == self.ireg_ST and \
            self.cmd[1].reg == self.ireg_ST:
             spofs = self.cmd[2].value
             if self.cmd.itype == self.itype_sbi:
                 spofs = -spofs
+
+        # load/store decrease
+        elif self.cmd.itype in (self.itype_ldsd, self.itype_stsd) and self.cmd[1].reg == self.ireg_ST:
+            spofs = -1 * (self.cmd[0].value + 1)
+        elif self.cmd.itype in (self.itype_ldwd, self.itype_stwd) and self.cmd[1].reg == self.ireg_ST:
+            spofs = -2 * (self.cmd[0].value + 1)
+        elif self.cmd.itype in (self.itype_ldtd, self.itype_sttd) and self.cmd[1].reg == self.ireg_ST:
+            spofs = -3 * (self.cmd[0].value + 1)
+
+        # load/store increase
+        elif self.cmd.itype in (self.itype_ldsi, self.itype_stsi) and self.cmd[1].reg == self.ireg_ST:
+            spofs = 1 * (self.cmd[0].value + 1)
+        elif self.cmd.itype in (self.itype_ldwi, self.itype_stwi) and self.cmd[1].reg == self.ireg_ST:
+            spofs = 2 * (self.cmd[0].value + 1)
+        elif self.cmd.itype in (self.itype_ldti, self.itype_stti) and self.cmd[1].reg == self.ireg_ST:
+            spofs = 3 * (self.cmd[0].value + 1)
 
         if spofs != 0:
             self.add_stkpnt(pfn, spofs)
