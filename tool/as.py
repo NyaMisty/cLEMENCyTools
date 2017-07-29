@@ -255,6 +255,15 @@ def assemble(fin, output, format):
         fout = sys.stdout if output == '-' else open(output, 'wb')
         fout.write(bytes(buf))
         fout.close()
+    elif format == 'hextet':
+        n = x = 0
+        buf = bytearray()
+        for i in code:
+            buf.append(i & 255)
+            buf.append(i >> 8)
+        fout = sys.stdout if output == '-' else open(output, 'wb')
+        fout.write(bytes(buf))
+        fout.close()
 
 def main():
     global opt_start
@@ -263,8 +272,9 @@ Examples:
 ./as.py -f 9bit clemency.s  # 100 120 003
 ./as.py -f bin clemency.s  # 100000000 100100000
 ./as.py -f octet clemency.s -o clemency.o
+./as.py -f hextet clemency.s -o clemency.16  # used with convert-bits.py
     ''')
-    ap.add_argument('-f', '--format', default='9bit', choices=('bin', 'octet', '9bit'), help='output format')
+    ap.add_argument('-f', '--format', default='9bit', choices=('bin', 'octet', 'hextet', '9bit'), help='output format')
     ap.add_argument('-o', '--output', default='-', help='output filename')
     ap.add_argument('-s', '--start-address', type=int, default=0, help='start address')
     ap.add_argument('asm_file', help='')
