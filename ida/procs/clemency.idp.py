@@ -167,6 +167,10 @@ def MiddleEndianToBigEndian(bits):
     assert bits.bw == 27
     return BitStream((bits[9:18] << 18) | (bits[0:9] << 9) | bits[18:27], 27)
 
+# is sp delta fixed by the user?
+def is_fixed_spd(ea):
+    return (get_aflags(ea) & AFL_FIXEDSPD) != 0
+
 class ClemencyProcessor(processor_t):
     # id = 0x8001 + 0x5571C
     # <TODO>: It must be > 0x8000?
@@ -239,12 +243,14 @@ class ClemencyProcessor(processor_t):
         self.inames = {}
         for idx, ins in enumerate(self.instrs):
             self.inames[ins['name']] = idx
+            setattr(self, 'itype_' + ins['name'], idx)
         self.icode_return = self.inames['re']
 
     def _init_registers(self):
         self.reg_ids = {}
         for i, reg in enumerate(self.reg_names):
             self.reg_ids[reg] = i
+            setattr(self, 'ireg_' + reg, i)
         self.regFirstSreg = self.regCodeSreg = self.reg_ids["CS"]
         self.regLastSreg = self.regDataSreg = self.reg_ids["DS"]
 
@@ -505,7 +511,7 @@ class ClemencyProcessor(processor_t):
         if pfn:
             end = self.cmd.ea + self.cmd.size
             if not is_fixed_spd(end):
-                AddAutoStkPnt2(pfn, end, v)
+                add_auto_stkpnt2(pfn, end, v)
 
 
     # 这里处理会修改sp的指令，如果懒or时间不够的话就留空吧
@@ -514,16 +520,20 @@ class ClemencyProcessor(processor_t):
         Trace the value of the SP and create an SP change point if the current
         instruction modifies the SP.
         """
-        # pfn = get_func(self.cmd.ea)
-        # if not pfn:
-        #    return
-        """if self.cmd[0].reg != None and self.cmd[0].reg == 2 and self.cmd[1].reg != None and self.cmd[1].reg == 2 and \
-                        self.cmd.itype in [self.inames['addi'], self.inames['addid'], self.inames['addiw']]:
-            # print self.cmd[2].value
-            spofs = toInt(self.cmd[2].value)
-            # print spofs
-            self.add_stkpnt(self.cmd.ea, spofs)"""
-        pass
+        pfn = get_func(self.cmd.ea)
+        if not pfn:
+           return
+        spofs = 0
+        if self.cmd.itype in (self.itype_adi, self.itype_sbi) and \
+           self.cmd[0].reg == self.ireg_ST and \
+           self.cmd[1].reg == self.ireg_ST:
+            spofs = self.cmd[2].value
+            if self.cmd.itype == self.itype_sbi:
+                spofs = -spofs
+
+        if spofs != 0:
+            print('+', spofs)
+            self.add_stkpnt(pfn, spofs)
 
 
     def emu(self):
