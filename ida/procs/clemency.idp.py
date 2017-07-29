@@ -85,11 +85,11 @@ class ClemencyProcessorHook(IDP_Hooks):
     def get_autocmt(self):
         return 2
 
-class ClemencyStringType(data_type_t):
+class clemency_data_type(data_type_t):
     def __init__(self):
         data_type_t.__init__(self, name="cLEMENCy",
                              value_size = 2, menu_name = "cLEMENCy string",
-                             asm_keyword = ".string")
+                             asm_keyword = ".clemency")
 
     def calc_item_size(self, ea, maxsize):
         # Custom data types may be used in structure definitions. If this case
@@ -105,11 +105,10 @@ class ClemencyStringType(data_type_t):
             ea_end += 1
         return ea_end - ea + 1
 
-
-class ClemencyStringFormat(data_format_t):
+class clemency_data_format(data_format_t):
     FORMAT_NAME = "cLEMENCy string"
     def __init__(self):
-        data_format_t.__init__(self, name=ClemencyStringFormat.FORMAT_NAME)
+        data_format_t.__init__(self, name=clemency_data_format.FORMAT_NAME)
 
     def printf(self, value, current_ea, operand_num, dtid):
         # Take the length byte
@@ -119,12 +118,31 @@ class ClemencyStringFormat(data_format_t):
         retsize -= 1
         buf = GetManyBytes(current_ea,retsize * 2)
         temp_buf = '"' + buf.decode('utf-16-le') + '", 0'
-        temp_buf.replace('\n','", 0Ah, "')
-        temp_buf.replace('"", ','')
+        temp_buf = temp_buf.replace('\r', '", 0Dh, "').replace('\n','", 0Ah, "').replace('"", ','')
         return temp_buf.encode("utf-8")
 
+class clemency_tribyte_format(data_format_t):
+    FORMAT_NAME = "cLEMENCy tribyte"
+    def __init__(self):
+        data_format_t.__init__(self, name="cLEMENCy tribyte",
+                               value_size = 3,
+                               menu_name = "Correct Middle Endian",
+                               hotkey = "Shift-M")
+
+    def printf(self, value, current_ea, operand_num, dtid):
+        # Take the length byte
+        byte1 = get_full_byte(current_ea) & 0x1ff
+        byte2 = get_full_byte(current_ea+1) & 0x1ff
+        byte3 = get_full_byte(current_ea+2) & 0x1ff
+        simplified = byte2 << 18 | byte1 << 9 | byte3
+        if isEnabled(simplified):
+            ua_add_dref(0,simplified,dr_R)
+        return "MIDDLE_ENDIAN(%Xh)" % (simplified)
+
 new_formats = [
-    (ClemencyStringType(), ClemencyStringFormat()),
+    (clemency_data_type(), clemency_data_format()),
+    (clemency_tribyte_format(),),
+    #(0,clemency_tribyte_format())
 ]
 
 class BitStream(object):
