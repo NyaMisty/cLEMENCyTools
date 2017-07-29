@@ -225,6 +225,9 @@ class ClemencyProcessor(processor_t):
     instruc_end = len(instruc) + 1
     idphook = None
 
+    codestart = ['\x7a\x01\x03\x00']
+    retcodes = ['\x00\x00\x40\x01']
+
     def __init__(self):
         super(ClemencyProcessor, self).__init__()
         self._init_instructions()
@@ -662,8 +665,11 @@ class ClemencyProcessor(processor_t):
         unregister_data_types_and_formats(new_formats)
 
     # <TODO>
-    # def notify_maybe_func(self, state):
-    #    pass
+    def notify_may_be_func(self, state):
+        if is_reg(self.cmd.Op1, self.reg_ids['ST']) and is_reg(self.cmd.Op2, self.reg_ids['ST']) and \
+           cmd.itype in (self.inames['adi'], self.inames['sbi']):
+            return 90
+        return 10
 
 
 
