@@ -6,6 +6,7 @@ from constants import *
 import idautils
 import copy
 import ctypes
+import string
 
 def ToSignedInteger(x, bw):
     return x - (1 << bw) if x & (1 << (bw - 1)) else x
@@ -85,6 +86,36 @@ class ClemencyProcessorHook(IDP_Hooks):
     def get_autocmt(self):
         return 2
 
+def is_string_like(start_addr, max_len=512):
+    for i in xrange(max_len):
+        b = Byte(start_addr + i)
+        if b >= 256:
+            return 0
+        if i > 2 and b == 0:
+            return i
+        if chr(b) not in string.printable:
+            return 0
+    return 0
+
+def _is_code_pointer(addr):
+    if not decode_insn(addr):
+        return False
+    # XXX: Fix the hardcoded 29, it's ST
+    if cmd.itype in (IDA_INAME_TO_ITYPE['adi'], IDA_INAME_TO_ITYPE['sbi']) and cmd[0].reg == 29 and cmd[1].reg == 29:
+        return True
+    elif cmd.itype == IDA_INAME_TO_ITYPE['ml'] and cmd[0].reg == 27:
+        if not decode_insn(addr + cmd.size):
+            return False
+        if cmd.itype in (IDA_INAME_TO_ITYPE['ad'], IDA_INAME_TO_ITYPE['sb']) and cmd[0].reg == 29 and cmd[1].reg == 29 and cmd[2].reg == 27:
+            return True
+    return False
+
+def is_code_pointer(addr):
+    old_ea = cmd.ea
+    result = _is_code_pointer(addr)
+    assert decode_insn(old_ea)
+    return result
+
 class clemency_data_type(data_type_t):
     def __init__(self):
         data_type_t.__init__(self, name="cLEMENCy",
@@ -135,15 +166,35 @@ class clemency_tribyte_format(data_format_t):
         byte2 = get_full_byte(current_ea+1) & 0x1ff
         byte3 = get_full_byte(current_ea+2) & 0x1ff
         simplified = byte2 << 18 | byte1 << 9 | byte3
-        if isEnabled(simplified):
-            ua_add_dref(0,simplified,dr_R)
         return "MIDDLE_ENDIAN(%Xh)" % (simplified)
+
+    def analyze(self, current_ea, operand_num):
+        byte1 = get_full_byte(current_ea) & 0x1ff
+        byte2 = get_full_byte(current_ea+1) & 0x1ff
+        byte3 = get_full_byte(current_ea+2) & 0x1ff
+        simplified = byte2 << 18 | byte1 << 9 | byte3
+        if isEnabled(simplified):
+            ua_add_dref_autodetermine_type(0,simplified,dr_R)
 
 new_formats = [
     (clemency_data_type(), clemency_data_format()),
     (clemency_tribyte_format(),),
     #(0,clemency_tribyte_format())
 ]
+
+dt_clemency_string = -1
+f_clemency_string = -1
+
+def ua_add_dref_autodetermine_type(opoff, to, typ):
+    if typ == dr_R:
+        slen = is_string_like(to)
+        if slen:
+            MakeCustomData(to, slen, dt_clemency_string, f_clemency_string)
+
+    if is_code_pointer(to):
+        ua_add_cref(opoff, to, fl_CN)
+    else:
+        ua_add_dref(opoff, to, typ)
 
 class BitStream(object):
     def __init__(self, v, bw):
@@ -373,7 +424,7 @@ class ClemencyProcessor(processor_t):
     def _emu_operand(self, op):
         if op.type == o_mem:
             ua_dodata2(0, op.addr, op.dtyp)
-            ua_add_dref(0, op.addr, dr_R)
+            ua_add_dref_autodetermine_type(0, op.addr, dr_R)
         elif op.type == o_near:
             if self.cmd.get_canon_feature() & CF_CALL:
                 fl = fl_CN
@@ -460,7 +511,6 @@ class ClemencyProcessor(processor_t):
         nn.altset(self.cmd.ea, resolved_offset & EA_BITMASK)
         pass
 
-
     # lui            a0, 65536
     # addi           a0, a0, 320
     # add data and far call offset
@@ -482,14 +532,14 @@ class ClemencyProcessor(processor_t):
             if last_record_ml != None:
                 target_offset = toInt((last_record_ml["value"]) + self.cmd[1].addr)
                 if (isLoaded(target_offset)):
-                    ua_add_dref(0, target_offset, dr_R)
+                    ua_add_dref_autodetermine_type(0, target_offset, dr_R)
                 self.add_auto_resolved_constant_comment(target_offset)
             last_record_mh = self.get_mh_array_object(self.cmd[1].reg)
             self.remove_mh_array_object(self.cmd[0].reg)
             if last_record_mh != None:
                 target_offset = toInt((last_record_mh["value"] << 10) + self.cmd[1].addr)
                 if (isLoaded(target_offset)):
-                    ua_add_dref(0, target_offset, dr_R)
+                    ua_add_dref_autodetermine_type(0, target_offset, dr_R)
                 self.add_auto_resolved_constant_comment(target_offset)
         else:
             cmd = self.cmd
@@ -503,7 +553,7 @@ class ClemencyProcessor(processor_t):
                     if self.cmd.itype == self.inames['mh']:
                         target_offset = toInt((last_record_ml["value"]) + (self.cmd[1].value << 10))
                         #if (isLoaded(target_offset)):
-                        ua_add_dref(0, target_offset, dr_R)
+                        ua_add_dref_autodetermine_type(0, target_offset, dr_R)
                         self.add_auto_resolved_constant_comment(target_offset)
                         if self.cmd[0].reg == self.ireg_R27:
                             self.last_r27 = (target_offset, self.cmd.ea)
@@ -594,6 +644,7 @@ class ClemencyProcessor(processor_t):
         #   - the stack pointer tracing is allowed
         if may_trace_sp():
             if flow:
+                print 'calling trace_sp'
                 self.trace_sp()  # trace modification of SP register
             else:
                 recalc_spd(self.cmd.ea)  # recalculate SP register for the next insn
@@ -676,6 +727,7 @@ class ClemencyProcessor(processor_t):
 
 
     def notify_init(self, idp_file):
+        global dt_clemency_string, f_clemency_string
         try:
             idp_hook_stat = "un"
             print "IDP hook: checking for hook..."
@@ -691,6 +743,8 @@ class ClemencyProcessor(processor_t):
         if not register_data_types_and_formats(new_formats):
             print 'Failed to register custom types.'
         else:
+            dt_clemency_string = new_formats[0][0].id
+            f_clemency_string = new_formats[0][1].id
             print 'Custom types registered.'
         # cvar.inf.mf = LITTLE_ENDIAN
         return True

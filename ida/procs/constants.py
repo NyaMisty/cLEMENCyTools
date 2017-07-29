@@ -485,3 +485,8 @@ IDA_INSTR_DEF = [
     {'name': 'zes', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Zero Extend Single  ZES rA, rB'},
     {'name': 'zew', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Zero Extend Word    ZEW rA, rB'}
 ]
+
+IDA_INAME_TO_ITYPE = {}
+for i, ins in enumerate(IDA_INSTR_DEF):
+    IDA_INAME_TO_ITYPE[ins['name']] = i
+    
