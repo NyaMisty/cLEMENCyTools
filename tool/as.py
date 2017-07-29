@@ -74,7 +74,7 @@ def assemble(fin, output, format):
     code = []
     code_ends = []
     for lineno, line in enumerate(fin.readlines(), 1):
-        line = line.strip()
+        line = re.sub(r'#.*', '', line.strip())
         if not line: continue
         m = re.match(r'^(\w+):$', line)
         if m:
