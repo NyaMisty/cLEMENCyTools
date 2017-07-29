@@ -710,7 +710,7 @@ class ClemencyProcessor(processor_t):
 
     # <TODO>
     def notify_may_be_func(self, state):
-        if is_reg(self.cmd.Op1, self.reg_ids['ST']) and is_reg(self.cmd.Op2, self.reg_ids['ST']) and \
+        if self.cmd.Op1.type == o_reg and self.cmd.Op1.reg == self.reg_ids['ST'] and self.cmd.Op2.type == o_reg and self.cmd.Op2.reg == self.reg_ids['ST'] and \
            cmd.itype in (self.inames['adi'], self.inames['sbi']):
             return 90
         return 10
