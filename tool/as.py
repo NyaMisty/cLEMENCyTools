@@ -58,7 +58,7 @@ def assemble(fin, output, format):
                     l = bits[1]-bits[0]+1
                 # register
 
-                if rhs in ('Adj_rB', 'Condition', 'imm', 'Location', 'mem_off', 'Memory_Flags', 'Offset', 'Reg_Count', 'UF'):
+                if rhs in ('Adj_rB', 'Condition', 'imm', 'Location', 'mem_off', 'Memory_Flags', 'Offset', 'Reg_Count', 'UF', 'immS'):
                     entry.append((l, rhs))
                 elif rhs.startswith('r'):
                     entry.append((l, 'r'))
