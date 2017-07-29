@@ -290,6 +290,7 @@ class ClemencyProcessor(processor_t):
         self.last_ml_array = [{'reg': -1, 'value': 0}]
         self.last_mh_array = [{'reg': -1, 'value': 0}]
         self.last_r27 = None
+        self.saved_st = None
 
     def _init_instructions(self):
         self.inames = {}
@@ -597,7 +598,7 @@ class ClemencyProcessor(processor_t):
                     last_record_ml = self.get_ml_array_object(cmd[2].reg)
                     if last_record_ml:
                         spofs = last_record_ml['value']
-            if self.cmd.itype == self.itype_sbi:
+            if self.cmd.itype == self.itype_sb:
                 spofs = -spofs 
 
         # load/store decrease
@@ -615,6 +616,12 @@ class ClemencyProcessor(processor_t):
             spofs = 2 * (self.cmd[0].value + 1)
         elif self.cmd.itype in (self.itype_ldti, self.itype_stti) and self.cmd[1].reg == self.ireg_ST:
             spofs = 3 * (self.cmd[0].value + 1)
+
+        if self.cmd.itype in (self.itype_sttd, self.itype_stti) and self.cmd[0].reg <= self.ireg_ST and self.ireg_ST <= self.cmd[0].reg + self.cmd[0].value:
+            self.saved_st = get_spd(pfn, self.cmd.ea)
+        if self.cmd.itype == self.itype_ldt and self.cmd[0].reg <= self.ireg_ST and self.ireg_ST <= self.cmd[0].reg + self.cmd[0].value:
+            if self.saved_st:
+                spofs = self.saved_st - get_spd(pfn, self.cmd.ea)
 
         if spofs != 0:
             self.add_stkpnt(pfn, spofs)
@@ -634,7 +641,8 @@ class ClemencyProcessor(processor_t):
             self._emu_operand(cmd[2])
         if ft & CF_USE4:
             self._emu_operand(cmd[3])
-
+        if cmd.itype == self.itype_re:
+            self.saved_st = None
         if not ft & CF_STOP:
             ua_add_cref(0, cmd.ea + cmd.size, fl_F)
             flow = True
@@ -644,7 +652,6 @@ class ClemencyProcessor(processor_t):
         #   - the stack pointer tracing is allowed
         if may_trace_sp():
             if flow:
-                print 'calling trace_sp'
                 self.trace_sp()  # trace modification of SP register
             else:
                 recalc_spd(self.cmd.ea)  # recalculate SP register for the next insn
