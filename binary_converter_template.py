@@ -92,12 +92,15 @@ class openrisc_translator_arm:
         segHeader += ("'              @ Segment at %0"+ str(self.xlen * 2) +"X %s") % (ea, SegName(ea))"""
         self.out(segHeader)
     #获取data中的offset
-    def calcOffsetTargetAndBase(self, ea, value):
+    """def calcOffsetTargetAndBase(self, ea, value):
         refi = opinfo_t()
         get_opinfo(ea, 0, GetFlags(ea), refi)
 
         reftarget = calc_reference_target(ea, refi.ri, value)
-        return reftarget,refi.ri.base
+        return reftarget,refi.ri.base"""
+
+    def calcOffsetTargetAndBase(self, ea, value):
+        return value, 0
 
     def getFirstXref(self, ea):
         for i in XrefsTo(ea):
@@ -148,24 +151,25 @@ class openrisc_translator_arm:
                     curline += self.makeOffsetExpression(ea, target, base)
                     ea += 1
                     print "Warning: Offset typed byte appeared"
+                    """
                 elif isWord(curflag):
                     curline += ".word "
                     target, base = self.calcOffsetTargetAndBase(ea, Word(ea))
                     curline += self.makeOffsetExpression(ea, target, base)
                     #curline += self.getRealName(target)
                     ea += 2
-                elif isDwrd(curflag):
+                """
+                elif is3byte(curflag):
+                    byte1 = get_full_byte(ea) & 0x1ff
+                    byte2 = get_full_byte(ea + 1) & 0x1ff
+                    byte3 = get_full_byte(ea + 2) & 0x1ff
+                    simplified = byte2 << 18 | byte1 << 9 | byte3
                     curline += ".dword "
-                    target, base = self.calcOffsetTargetAndBase(ea, Dword(ea))
+
+                    target, base = self.calcOffsetTargetAndBase(ea, simplified(ea))
                     curline += self.makeOffsetExpression(ea, target, base)
                     #curline += self.getRealName(target)
-                    ea += 4
-                elif isQwrd(curflag):
-                    curline += ".dword "
-                    target, base = self.calcOffsetTargetAndBase(ea, Qword(ea))
-                    curline += self.makeOffsetExpression(ea, target, base)
-                    #curline += self.getRealName(target)
-                    ea += 8
+                    ea += 3
                 else:
                     print ("Warning: not supported data type at %0"+str(self.xlen * 2)+"X") % (ea)
                     curline += ".hword %d\n" % (Byte(ea))
@@ -174,23 +178,18 @@ class openrisc_translator_arm:
                 if isByte(curflag):
                     curline += ".hword %d\n" % (Byte(ea))
                     ea += 1
+                    """
                 elif isWord(curflag):
                     curline += ".word %d\n" % (Word(ea))
                     ea += 2
-                elif isDwrd(curflag):
-                    curline += ".dword %d\n" % (Dword(ea))
-                    ea += 4
-                elif isQwrd(curflag):
-                    curline += ".dword %d\n" % (Qword(ea))
-                    ea += 8
-                elif isOwrd(curflag):
-                    for i in range(ea, ea + 16):
-                        curline += ".hword %d\n" % (Byte(i))
-                    ea += 16
-                elif isYwrd(curflag):
-                    for i in range(ea, ea + 32):
-                        curline += ".hword %d\n" % (Byte(i))
-                    ea += 32
+                """
+                elif is3byte(curflag):
+                    byte1 = get_full_byte(ea) & 0x1ff
+                    byte2 = get_full_byte(ea + 1) & 0x1ff
+                    byte3 = get_full_byte(ea + 2) & 0x1ff
+                    simplified = byte2 << 18 | byte1 << 9 | byte3
+                    curline += ".dword %d\n" % (simplified)
+                    ea += 3
                 else:
                     curline += ".hword %d\n" % (Byte(ea))
                     ea += 1
@@ -1073,6 +1072,7 @@ class openrisc_translator_arm:
     def translator_md(self, ea, cmd):
         rA = self.premap_registers(cmd[0].reg)
         rB = self.premap_registers(cmd[1].reg)
+        rC = self.premap_registers(cmd[2].reg)
         self.out("udiv %s, %s, %s" % (rA, rB, rC))
         rAE = self.premap_registers(cmd[0].reg,True)
         rB = self.premap_registers(cmd[1].reg, True)
@@ -1168,11 +1168,15 @@ class openrisc_translator_arm:
         pass
 
     def translator_mh(self, ea, cmd):
+        simplified = self.translateComment(ea)
         rA = self.premap_registers(cmd[0].reg)
-        self.out("ldr %s, =%d" % (self.temp_register, 0x3ff))
-        self.out("and %s, %s, %s" % (rA, rA, self.temp_register))
-        self.out("ldr %s, =%d" % (self.temp_register, cmd[1].value << 10))
-        self.out("orr %s, %s, %s" % (rA, rA, self.temp_register))
+        if simplified == BADADDR:
+            self.out("ldr %s, =%d" % (self.temp_register, 0x3ff))
+            self.out("and %s, %s, %s" % (rA, rA, self.temp_register))
+            self.out("ldr %s, =%d" % (self.temp_register, cmd[1].value << 10))
+            self.out("orr %s, %s, %s" % (rA, rA, self.temp_register))
+        else:
+            self.out("ldr %s, =%s" % (rA, self.getRealName(simplified)))
         pass
 
     def translator_ml(self, ea, cmd):
@@ -1758,6 +1762,8 @@ class openrisc_translator_arm:
             MemLocation += 2
             StartReg = (StartReg + 1) % 32
             CurCount = CurCount - 1
+        self.out(("sub %s, %s, #%d") % (
+        self.premap_registers(cmd[1].reg, True), self.premap_registers(cmd[1].reg, True), RegCount))
         pass
 
     def translator_stdt(self, ea, cmd):
@@ -1775,6 +1781,7 @@ class openrisc_translator_arm:
                 MemLocation += 6
                 StartReg = (StartReg + 1) % 32
                 CurCount = CurCount - 1
+            self.out(("sub %s, %s, #%d") % (self.premap_registers(cmd[1].reg, True), self.premap_registers(cmd[1].reg, True),RegCount*3))
         pass
 
     def translator_stdw(self, ea, cmd):
@@ -1789,6 +1796,8 @@ class openrisc_translator_arm:
             MemLocation += 4
             StartReg = (StartReg + 1) % 32
             CurCount = CurCount - 1
+        self.out(("sub %s, %s, #%d") % (
+        self.premap_registers(cmd[1].reg, True), self.premap_registers(cmd[1].reg, True), RegCount * 2))
         pass
 
     def translator_xr(self, ea, cmd):
