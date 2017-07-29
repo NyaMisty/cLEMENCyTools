@@ -106,10 +106,10 @@ def assemble(fin, output, format):
             for i in ['BR', 'B', 'CR', 'C']:
                 if inst.startswith(i):
                     cc = inst[len(i):].lower()
-                    inst = i
                     if cc not in CONDITION:
                         continue
                         # error('{}: unknown condition code `{}`', lineno, cc)
+                    inst = i
                     break
             for i in ['LDS', 'LDT', 'LDW', 'STS', 'STT', 'STW']:
                 if inst.startswith(i):
