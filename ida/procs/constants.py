@@ -439,7 +439,7 @@ IDA_INSTR_DEF = [
     {'name': 'ses', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Sign Extend Single  SES rA, rB'},
     {'name': 'sew', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Sign Extend Word    SEW rA, rB'},
     {'name': 'sf', 'feature': CF_USE1 | CF_USE2, 'cmt': 'Set Flags    SF rA'},
-    {'name': 'sl', 'feature': CF_USE1 | CF_USE2 | CF_CHG1, 'cmt': 'Shift Left   SL rA, rB, rC'},
+    {'name': 'sl', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1, 'cmt': 'Shift Left   SL rA, rB, rC'},
     {'name': 'sli', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
      'cmt': 'Shift Left Immediate    SLI rA, rB, IMM'},
     {'name': 'slim', 'feature': CF_USE1 | CF_USE2 | CF_USE3 | CF_CHG1,
@@ -489,4 +489,3 @@ IDA_INSTR_DEF = [
 IDA_INAME_TO_ITYPE = {}
 for i, ins in enumerate(IDA_INSTR_DEF):
     IDA_INAME_TO_ITYPE[ins['name']] = i
-    
