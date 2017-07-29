@@ -12,6 +12,13 @@ def serialize_sign(l, x):
         error('Offset too small')
     return x if x >= 0 else (1 << l) + x
 
+def serialize_unsigned(l, x):
+    if x >= 1 << l:
+        error('Offset too large')
+    if x < 0:
+        error('Offset too small')
+    return x
+
 CONDITION = {
     'n': 0,
     'e': 1,
@@ -125,12 +132,15 @@ def assemble(fin, output, format):
             #from ipdb import set_trace; set_trace()
             nth = x = n = 0
             for l, i in entry:
-                if i in ('imm', 'mem_off'):
+                if i in ('imm', 'mem_off', 'immS'):
                     nth += 1
                     if not ops:
                         error('{}: instruction `{}`: missing operand {}', lineno, inst, nth)
                     try:
-                        x = x << l | serialize_sign(l, int(ops.pop(0), 0))
+                        if i == 'immS':
+                            x = x << l | serialize_sign(l, int(ops.pop(0), 0))
+                        else:
+                            x = x << l | serialize_unsigned(l, int(ops.pop(0), 0))
                     except ValueError:
                         error('{}: invalid immediate number', lineno)
                 elif i == 'Adj_rB':
