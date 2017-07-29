@@ -312,7 +312,7 @@ class ClemencyProcessor(processor_t):
             cmd[1].addr = ToSignedInteger(opcode[24:51], 27)
             cmd[1].dtyp = dt_3byte
             adjB = opcode[22:24]
-            newname = rins.name[:2] + ['', 'i', 'd'][adjB] + rins.name[2:]
+            newname = rins.name + ['', 'i', 'd'][adjB]
             cmd.itype = self.inames[newname]
 
         OverrideLDS = OverrideLDT = OverrideLDW = ParseLoadStore
@@ -532,7 +532,6 @@ class ClemencyProcessor(processor_t):
                 spofs = -spofs
 
         if spofs != 0:
-            print('+', spofs)
             self.add_stkpnt(pfn, spofs)
 
 
