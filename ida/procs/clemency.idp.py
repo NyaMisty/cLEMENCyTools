@@ -509,10 +509,14 @@ class ClemencyProcessor(processor_t):
             # print "ml/md at: %08X on reg %s value %Xh\n" % (self.cmd.ea, self.regNames[self.cmd[0].reg], self.cmd[1].value)
             self.remove_ml_array_object(self.cmd[0].reg)
             self.last_ml_array.append({"reg": self.cmd[0].reg, "value": self.cmd[1].value})
+            if self.cmd[0].reg == self.ireg_R27:
+                self.last_mls_r27 = (self.cmd[1].copy(), self.cmd.ea)
             return
         if self.cmd.itype == self.inames['mh']:
             # print "mh at: %08X on reg %s value %Xh\n" % (self.cmd.ea, self.regNames[self.cmd[0].reg], self.cmd[1].value)
             self.last_mh_array.append({"reg": self.cmd[0].reg, "value": self.cmd[1].value})
+        if self.cmd.itype == self.inames['ms'] and self.cmd[0].reg == self.ireg_R27:
+            self.last_mls_r27 = (self.cmd[1].copy(), self.cmd.ea)
         if self.cmd.itype == self.inames['lds'] or self.cmd.itype == self.inames['ldt'] \
                 or self.cmd.itype == self.inames['ldw'] or self.cmd.itype == self.inames['sts'] \
                 or self.cmd.itype == self.inames['stt'] or self.cmd.itype == self.inames['stw']:
@@ -671,6 +675,14 @@ class ClemencyProcessor(processor_t):
                 self.trace_sp()  # trace modification of SP register
             else:
                 recalc_spd(self.cmd.ea)  # recalculate SP register for the next insn
+        if may_create_stkvars():
+            if cmd.itype == self.itype_ad and cmd[1].reg == self.ireg_R28 and cmd[2].reg == self.ireg_R27:
+                tpfn = get_func(self.cmd.ea)
+                op, lastea = self.last_mls_r27
+                cv = toInt(op.value)
+                #print tpfn, cv, op
+                if tpfn and ua_stkvar2(op, cv, 0):
+                    op_stkvar(lastea, op.n)
         return True
 
 
