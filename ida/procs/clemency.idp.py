@@ -85,6 +85,48 @@ class ClemencyProcessorHook(IDP_Hooks):
     def get_autocmt(self):
         return 2
 
+class ClemencyStringType(data_type_t):
+    def __init__(self):
+        data_type_t.__init__(self, name="cLEMENCy",
+                             value_size = 2, menu_name = "cLEMENCy string",
+                             asm_keyword = ".string")
+
+    def calc_item_size(self, ea, maxsize):
+        # Custom data types may be used in structure definitions. If this case
+        # ea is a member id. Check for this situation and return 1
+        if is_member_id(ea):
+            return 1
+        ea_end = ea
+        while ea_end - ea < maxsize:
+            if not isLoaded(ea_end):
+                break
+            if Byte(ea_end) == 0:
+                break
+            ea_end += 1
+        return ea_end - ea + 1
+
+
+class ClemencyStringFormat(data_format_t):
+    FORMAT_NAME = "cLEMENCy string"
+    def __init__(self):
+        data_format_t.__init__(self, name=ClemencyStringFormat.FORMAT_NAME)
+
+    def printf(self, value, current_ea, operand_num, dtid):
+        # Take the length byte
+        retsize = get_item_size(current_ea)
+        if retsize <= 0:
+            return 0
+        retsize -= 1
+        buf = GetManyBytes(current_ea,retsize * 2)
+        temp_buf = '"' + buf.decode('utf-16-le') + '", 0'
+        temp_buf.replace('\n','", 0Ah, "')
+        temp_buf.replace('"", ','')
+        return temp_buf.encode("utf-8")
+
+new_formats = [
+    (ClemencyStringType(), ClemencyStringFormat()),
+]
+
 class BitStream(object):
     def __init__(self, v, bw):
         self.v = v
@@ -121,7 +163,7 @@ class ClemencyProcessor(processor_t):
     segreg_size = 0
     instruc_start = 0
     assembler = {
-        "flag": ASH_HEXF0 | ASD_DECF0 | ASO_OCTF5 | ASB_BINF0 | AS_N2CHR,
+        "flag": ASH_HEXF0 | ASD_DECF0 | ASO_OCTF5 | ASB_BINF0 | AS_N2CHR | AS_ASCIIZ,
         "uflag": 0,
         "name": "cLEMENCy asm",
         "origin": ".org",
@@ -162,7 +204,7 @@ class ClemencyProcessor(processor_t):
 
     instruc = instrs = IDA_INSTR_DEF
 
-    instruc_end = len(instruc)
+    instruc_end = len(instruc) + 1
     idphook = None
 
     def __init__(self):
@@ -176,6 +218,7 @@ class ClemencyProcessor(processor_t):
         self.inames = {}
         for idx, ins in enumerate(self.instrs):
             self.inames[ins['name']] = idx
+        self.icode_return = self.inames['re']
 
     def _init_registers(self):
         self.reg_ids = {}
@@ -240,7 +283,7 @@ class ClemencyProcessor(processor_t):
             cmd[1].specval |= FL_INDIRECT
             cmd[1].reg = opcode[12:17]
             cmd[1].addr = ToSignedInteger(opcode[24:51], 27)
-            cmd[1].dtyp = dt_dword
+            cmd[1].dtyp = dt_3byte
             adjB = opcode[22:24]
             newname = rins.name[:2] + ['', 'i', 'd'][adjB] + rins.name[2:]
             cmd.itype = self.inames[newname]
@@ -286,7 +329,7 @@ class ClemencyProcessor(processor_t):
                     cmd[idx].specval = val
                 else:
                     raise NotImplementedError('Instruction {0} needs custom handler for its operands {1} but not implemented!'.format(rins.name, oper.name))
-                cmd[idx].dtyp = dt_dword
+                cmd[idx].dtyp = dt_3byte
                 idx += 1
 
         return opcode_size
@@ -580,6 +623,10 @@ class ClemencyProcessor(processor_t):
             idp_hook_stat = ""
             self.idphook = ClemencyProcessorHook()
             self.idphook.hook()
+        if not register_data_types_and_formats(new_formats):
+            print 'Failed to register custom types.'
+        else:
+            print 'Custom types registered.'
         # cvar.inf.mf = LITTLE_ENDIAN
         return True
 
@@ -594,6 +641,12 @@ class ClemencyProcessor(processor_t):
             self.idphook = None
         except:
             pass
+        unregister_data_types_and_formats(new_formats)
+
+    # <TODO>
+    # def notify_maybe_func(self, state):
+    #    pass
+
 
 
 def PROCESSOR_ENTRY():
