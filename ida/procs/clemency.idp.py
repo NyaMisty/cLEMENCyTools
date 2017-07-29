@@ -363,7 +363,7 @@ class ClemencyProcessor(processor_t):
             cmd[1].specval |= FL_INDIRECT
             cmd[1].reg = opcode[12:17]
             cmd[1].addr = ToSignedInteger(opcode[24:51], 27)
-            cmd[1].dtyp = dt_3byte
+            cmd[1].dtyp = {'s': dt_byte, 'w': dt_word, 't': dt_3byte}[rins.name[2]]
             adjB = opcode[22:24]
             newname = rins.name + ['', 'i', 'd'][adjB]
             cmd.itype = self.inames[newname]
@@ -420,18 +420,6 @@ class ClemencyProcessor(processor_t):
             return self._ana()
         except DecodingError:
             return 0
-
-
-    def _emu_operand(self, op):
-        if op.type == o_mem:
-            ua_dodata2(0, op.addr, op.dtyp)
-            ua_add_dref_autodetermine_type(0, op.addr, dr_R)
-        elif op.type == o_near:
-            if self.cmd.get_canon_feature() & CF_CALL:
-                fl = fl_CN
-            else:
-                fl = fl_JN
-            ua_add_cref(0, op.addr, fl)
 
 
     # 这三个是下面simplify的辅助函数可以看看供为参考
@@ -626,6 +614,34 @@ class ClemencyProcessor(processor_t):
         if spofs != 0:
             self.add_stkpnt(pfn, spofs)
 
+    def get_frame_retsize(self, func_ea):
+        return 0
+
+    def is_sp_based(self, op):
+        return OP_FP_BASED
+
+    def _emu_operand(self, op):
+        if op.type == o_mem:
+            ua_dodata2(0, op.addr, op.dtyp)
+            ua_add_dref_autodetermine_type(0, op.addr, dr_R)
+        elif op.type == o_near:
+            if self.cmd.get_canon_feature() & CF_CALL:
+                fl = fl_CN
+            else:
+                fl = fl_JN
+            ua_add_cref(0, op.addr, fl)
+        elif op.type == o_displ and op.specval & FL_INDIRECT:
+            # R28 is used as FP
+            if may_create_stkvars() and op.reg == self.ireg_R28:
+                if self.cmd[0].reg <= self.ireg_ST and self.ireg_ST <= self.cmd[0].reg+self.cmd[0].value:
+                    pass
+                else:
+                    tpfn = get_func(self.cmd.ea)
+                    flag = STKVAR_VALID_SIZE if (op.specval & FL_INDIRECT) else 0
+                    cv = toInt(op.addr)
+                    # print hex(self.cmd.ea), cv
+                    if tpfn and ua_stkvar2(op, cv, flag):
+                        op_stkvar(self.cmd.ea, op.n)
 
     def emu(self):
         cmd = self.cmd
