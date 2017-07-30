@@ -27,7 +27,7 @@ void print_help(FILE *fh)
   fprintf(fh, USAGE, program_invocation_short_name);
   fputs("\n"
         "Examples:\n"
-        "  ./ptrace-flag 0x409f98 ./clemency-emu hello.bin  # return 00 if flag is read\n"
+        "  ./ptrace-flag 0x409f98 ./clemency-emu hello.bin  # return 99 if flag is read\n"
         "\n"
         , fh);
   exit(fh == stdout ? 0 : EX_USAGE);
@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
     {0,           0,                 0,   0},
   };
 
-  while ((opt = getopt_long(argc, argv, "crhvw", long_options, NULL)) != -1) {
+  while ((opt = getopt_long(argc, argv, "+crhvw", long_options, NULL)) != -1) {
     switch (opt) {
     case 'c':
       opt_type = CODE;

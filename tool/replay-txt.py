@@ -7,10 +7,9 @@ def do_task(filename):
     pair = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM, 0)
     with open(filename) as f, \
          subprocess.Popen([ptrace_flag, '0x409f98', opt_emu,
+                           '-f', str(pair[1].fileno()),
                            opt_binary],
-                          pass_fds=[pair[1].fileno()],
-                          stdin=pair[1],
-                          stdout=pair[1]) as p:
+                          pass_fds=[pair[1].fileno()]) as p:
     #with open(filename) as f, \
     #     subprocess.Popen(['/tmp/a.py'],
     #                      pass_fds=[pair[1].fileno()],
@@ -19,7 +18,6 @@ def do_task(filename):
         pair[1].close()
         try:
             for line in f.readlines():
-                input()
                 if line.startswith('C '):
                     buf = bytearray()
                     i = 0
@@ -37,9 +35,18 @@ def do_task(filename):
                 elif line.startswith('S '):
                     if opt_verbose:
                         print('S')
-                    rl, _, _ = select.select([], [], [], opt_timeout)
-                    if rl:
-                        pair[0].recv(1024*1024)
+                    buf = bytearray()
+                    i = 0
+                    while i < len(line):
+                        if line[i] == '\\':
+                            buf.append(int(line[i+2:i+4], 16))
+                            i += 4
+                        else:
+                            buf.append(ord(line[i]))
+                            i += 1
+                    buf = bytes(buf)
+                    #rl, _, _ = select.select([], [], [], opt_timeout)
+                    pair[0].recv(len(buf))
                 elif line.startswith('delay '):
                     timeout = min(float(line[6:]), opt_timeout)
                     if opt_verbose:
