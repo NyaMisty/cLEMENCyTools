@@ -67,7 +67,7 @@ def do_task1(filename):
                     pair[0].recv(l)
             pair[0].shutdown(socket.SHUT_RD)
             if p.wait(opt_timeout) == 99:
-                print('Suspect: {}'.format(filename))
+                print('Suspect: {}'.format(filename), flush=True)
         except TimeoutError:
             print('Timeout: {}'.format(filename))
             try:
