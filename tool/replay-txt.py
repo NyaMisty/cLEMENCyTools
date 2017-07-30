@@ -81,7 +81,8 @@ def do_task1(filename):
                 pass
 
 def do_task(filename):
-    print(filename)
+    if opt_verbose:
+        print(filename)
     try:
         do_task1(filename)
     except:
