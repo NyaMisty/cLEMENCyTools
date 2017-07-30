@@ -27,7 +27,7 @@ void print_help(FILE *fh)
   fprintf(fh, USAGE, program_invocation_short_name);
   fputs("\n"
         "Examples:\n"
-        "  ./ptrace-flag 0x6138e0 ./clemency-emu hello.bin  # return 00 if flag is read\n"
+        "  ./ptrace-flag 0x409f98 ./clemency-emu hello.bin  # return 00 if flag is read\n"
         "\n"
         , fh);
   exit(fh == stdout ? 0 : EX_USAGE);
@@ -35,7 +35,7 @@ void print_help(FILE *fh)
 
 int main(int argc, char* argv[])
 {
-  bool opt_verbose;
+  bool opt_verbose = false;
   int opt;
   Type opt_type = CODE;
   static struct option long_options[] = {
