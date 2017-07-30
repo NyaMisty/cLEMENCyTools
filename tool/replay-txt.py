@@ -81,6 +81,7 @@ def do_task1(filename):
                 pass
 
 def do_task(filename):
+    print(filename)
     try:
         do_task1(filename)
     except:
